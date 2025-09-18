@@ -13,9 +13,9 @@ final class RecipeStore: ObservableObject {
         guard let i = recipes.firstIndex(where: { $0.id == recipe.id }) else { return }
         recipes[i].isFavorite.toggle()
     }
-    func update(_ recipe: Recipe) {
-        guard let i = recipes.firstIndex(where: { $0.id == recipe.id }) else { return }
-        recipes[i] = recipe
-    }
+    func update(_ recipe: Recipe, with updated: Recipe) {
+            guard let idx = recipes.firstIndex(where: { $0.id == recipe.id }) else { return }
+            recipes[idx] = updated
+        }
 
 }

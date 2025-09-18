@@ -21,4 +21,5 @@ struct Recipe: Identifiable, Equatable {
     /// For seeded/static recipes, use an asset name (e.g., "shrimp", "chicken-adobo", "veggie").
     /// If `imageData` exists, it takes priority over `assetName`.
     var assetName: String? = nil
+    var imageName: String? = nil
 }

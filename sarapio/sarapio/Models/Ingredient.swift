@@ -1,12 +1,24 @@
 import Foundation
 
-struct Ingredient: Identifiable, Equatable {
-    let id = UUID()
+struct Ingredient: Identifiable, Hashable {
+    var id = UUID()
     var name: String
-    var qty: String
+    var amount: String   // numeric or text amount, e.g. "1", "2.5"
+    var unit: String     // e.g. "pcs", "tsp", "tbsp", "g", "ml"
 
-    init(_ name: String, qty: String = "") {
+    init(_ name: String, amount: String = "", unit: String = "") {
         self.name = name
-        self.qty = qty
+        self.amount = amount
+        self.unit = unit
+    }
+
+    var display: String {
+        if !amount.isEmpty && !unit.isEmpty {
+            return "\(amount) \(unit) \(name)"
+        } else if !amount.isEmpty {
+            return "\(amount) \(name)"
+        } else {
+            return name
+        }
     }
 }

@@ -3,16 +3,17 @@ import Foundation
 enum SampleData {
     static let recipes: [Recipe] = {
         var r1 = Recipe(title: "Garlic Butter Shrimp", minutes: 20, servings: 3, cuisine: "Seafood", region: "Lucena")
-        r1.assetName = "shrimp" // <-- your asset
+        r1.imageName = "shrimp"
         r1.tags = ["Under 30m", "Quick", "One-Pan"]
         r1.ingredients = [
-            Ingredient("Shrimp", qty: "500 g"),
-            Ingredient("Garlic", qty: "5 cloves"),
-            Ingredient("Butter", qty: "3 tbsp"),
-            Ingredient("Olive oil", qty: "1 tbsp"),
-            Ingredient("Lemon", qty: "1/2"),
-            Ingredient("Parsley", qty: "1 tbsp"),
-            Ingredient("Salt"), Ingredient("Black pepper")
+            Ingredient("Shrimp", amount: "500", unit: "g"),
+            Ingredient("Garlic", amount: "5", unit: "cloves"),
+            Ingredient("Butter", amount: "3", unit: "tbsp"),
+            Ingredient("Olive oil", amount: "1", unit: "tbsp"),
+            Ingredient("Lemon", amount: "1/2", unit: ""),
+            Ingredient("Parsley", amount: "1", unit: "tbsp"),
+            Ingredient("Salt"),
+            Ingredient("Black pepper")
         ]
         r1.steps = [
             StepItem(1, "Melt butter with oil; sauté garlic until fragrant."),
@@ -21,19 +22,19 @@ enum SampleData {
         ]
 
         var r2 = Recipe(title: "Chicken Adobo (One-Pan)", minutes: 45, servings: 4, cuisine: "Filipino", region: "Quezon")
-        r2.assetName = "chicken-adobo" // <-- your asset
+        r2.imageName = "chicken-adobo"
         r2.tags = ["Dinner", "One-Pan"]
         r2.ingredients = [
-            Ingredient("Chicken thighs", qty: "800 g"),
-            Ingredient("Soy sauce", qty: "1/2 cup"),
-            Ingredient("Vinegar", qty: "1/3 cup"),
-            Ingredient("Water", qty: "1/2 cup"),
-            Ingredient("Garlic", qty: "6 cloves"),
-            Ingredient("Bay leaves", qty: "3 pcs"),
-            Ingredient("Peppercorns", qty: "1 tsp"),
-            Ingredient("Brown sugar", qty: "1 tbsp"),
-            Ingredient("Onion", qty: "1 pc"),
-            Ingredient("Oil", qty: "1 tbsp")
+            Ingredient("Chicken thighs", amount: "800", unit: "g"),
+            Ingredient("Soy sauce", amount: "1/2", unit: "cup"),
+            Ingredient("Vinegar", amount: "1/3", unit: "cup"),
+            Ingredient("Water", amount: "1/2", unit: "cup"),
+            Ingredient("Garlic", amount: "6", unit: "cloves"),
+            Ingredient("Bay leaves", amount: "3", unit: "pcs"),
+            Ingredient("Peppercorns", amount: "1", unit: "tsp"),
+            Ingredient("Brown sugar", amount: "1", unit: "tbsp"),
+            Ingredient("Onion", amount: "1", unit: "pc"),
+            Ingredient("Oil", amount: "1", unit: "tbsp")
         ]
         r2.steps = [
             StepItem(1, "Sauté onion & garlic in oil."),
@@ -44,18 +45,18 @@ enum SampleData {
         ]
 
         var r3 = Recipe(title: "Veggie Stir-Fry", minutes: 25, servings: 2, cuisine: "Asian", region: "Lucena")
-        r3.assetName = "veggie" // <-- your asset
+        r3.imageName = "veggie"
         r3.tags = ["Under 30m", "Veggie", "One-Pan"]
         r3.ingredients = [
-            Ingredient("Broccoli", qty: "1 head"),
-            Ingredient("Carrot", qty: "1 pc"),
-            Ingredient("Bell pepper", qty: "1 pc"),
-            Ingredient("Mushrooms", qty: "150 g"),
-            Ingredient("Garlic", qty: "3 cloves"),
-            Ingredient("Soy sauce", qty: "2 tbsp"),
-            Ingredient("Oyster sauce", qty: "1 tbsp"),
-            Ingredient("Cornstarch", qty: "1 tsp (slurry)"),
-            Ingredient("Oil", qty: "1 tbsp")
+            Ingredient("Broccoli", amount: "1", unit: "head"),
+            Ingredient("Carrot", amount: "1", unit: "pc"),
+            Ingredient("Bell pepper", amount: "1", unit: "pc"),
+            Ingredient("Mushrooms", amount: "150", unit: "g"),
+            Ingredient("Garlic", amount: "3", unit: "cloves"),
+            Ingredient("Soy sauce", amount: "2", unit: "tbsp"),
+            Ingredient("Oyster sauce", amount: "1", unit: "tbsp"),
+            Ingredient("Cornstarch", amount: "1", unit: "tsp (slurry)"),
+            Ingredient("Oil", amount: "1", unit: "tbsp")
         ]
         r3.steps = [
             StepItem(1, "Stir-fry vegetables on high heat (5–6m)."),

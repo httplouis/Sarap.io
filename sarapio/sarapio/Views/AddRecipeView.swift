@@ -1,185 +1,264 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 struct AddRecipeView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: RecipeStore
 
-    // If editing, we receive an existing recipe
-    var editing: Recipe? = nil
+    var editing: Recipe?
 
-    // basic fields
-    @State private var title = ""
-    @State private var minutes: Int = 30
-    @State private var servings: Int = 2
-    @State private var cuisine = ""
-    @State private var region = ""
+    @State private var title: String = ""
+    @State private var minutes: String = ""
+    @State private var servings: String = ""
+    @State private var cuisine: String = ""
+    @State private var region: String = ""
 
-    // ingredients
-    @State private var ingName = ""
-    @State private var ingQty = ""
     @State private var ingredients: [Ingredient] = []
-
-    // steps
-    @State private var stepText = ""
     @State private var steps: [StepItem] = []
 
-    // image
     @State private var pickerItem: PhotosPickerItem?
-    @State private var imageData: Data?
+    @State private var pickedImageData: Data?
+    @State private var pickedUIImage: UIImage?
 
-    private var canSave: Bool {
-        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !ingredients.isEmpty && !steps.isEmpty
+    private var existingImageData: Data? { editing?.imageData }
+
+    @State private var showSuccess = false
+
+    init(editing: Recipe? = nil) {
+        self.editing = editing
     }
 
     var body: some View {
-        List {
-            // Image picker + preview
-            Section {
-                VStack(alignment: .leading, spacing: 8) {
-                    if let data = imageData, let ui = UIImage(data: data) {
-                        Image(uiImage: ui)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 170)
-                            .clipShape(RoundedRectangle(cornerRadius: 16))
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
-                    } else {
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Theme.card)
-                            .frame(height: 120)
-                            .overlay(
-                                VStack(spacing: 6) {
-                                    Image(systemName: "photo.on.rectangle").font(.title2)
-                                    Text("Add a dish photo").font(.footnote).foregroundStyle(Theme.subtext)
-                                }
-                            )
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
-                    }
-                    PhotosPicker(selection: $pickerItem, matching: .images) {
-                        Label("Choose from Library", systemImage: "photo")
+        Form {
+            // PHOTO
+            Section("PHOTO") {
+                HStack(spacing: 16) {
+                    previewImage
+                        .frame(width: 84, height: 84)
+                        .background(Theme.card)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
+
+                    PhotosPicker(selection: $pickerItem, matching: .images, photoLibrary: .shared()) {
+                        Label("Choose Photo", systemImage: "photo.on.rectangle")
+                            .font(.body)
+                            .foregroundStyle(Theme.olive)
                     }
                 }
+                .listRowBackground(Theme.card)
             }
 
-            Section("Basic Info") {
+            // BASIC
+            Section("BASIC") {
                 TextField("Title", text: $title)
-                Stepper(value: $minutes, in: 1...240) { Text("Prep/Cook: \(minutes) min") }
-                Stepper(value: $servings, in: 1...12) { Text("Servings: \(servings)") }
-                TextField("Cuisine (e.g., Filipino)", text: $cuisine)
-                TextField("Region/City (e.g., Lucena)", text: $region)
-            }
-
-            Section("Ingredients") {
                 HStack {
-                    TextField("Ingredient", text: $ingName)
-                    TextField("Qty", text: $ingQty).frame(width: 100)
-                    Button { addIngredient() } label: { Image(systemName: "plus.circle.fill") }
-                        .disabled(ingName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    TextField("Minutes", text: $minutes)
+                        .keyboardType(.numberPad)
+                        .placeholder(when: minutes.isEmpty) {
+                            Text("Minutes").foregroundColor(.gray)
+                        }
+                    TextField("Servings", text: $servings)
+                        .keyboardType(.numberPad)
+                        .placeholder(when: servings.isEmpty) {
+                            Text("Servings").foregroundColor(.gray)
+                        }
                 }
-                if ingredients.isEmpty { Text("Add at least one ingredient").foregroundStyle(Theme.subtext) }
-                ForEach(ingredients) { ing in
-                    HStack { Text(ing.name); Spacer(); Text(ing.qty).foregroundStyle(Theme.subtext) }
-                }
-                .onDelete { idx in ingredients.remove(atOffsets: idx) }
+                TextField("Cuisine (optional)", text: $cuisine)
+                TextField("Region (optional)", text: $region)
             }
+            .listRowBackground(Theme.card)
 
-            Section("Steps") {
-                HStack(alignment: .firstTextBaseline) {
-                    TextField("Step instruction", text: $stepText, axis: .vertical)
-                    Button { addStep() } label: { Image(systemName: "plus.circle.fill") }
-                        .disabled(stepText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                }
-                if steps.isEmpty { Text("Add at least one step").foregroundStyle(Theme.subtext) }
-                ForEach(steps.sorted(by: { $0.order < $1.order })) { st in
+            // INGREDIENTS
+            Section("INGREDIENTS") {
+                ForEach($ingredients) { $ing in
                     HStack {
-                        Text("\(st.order).").monospacedDigit().foregroundStyle(Theme.subtext)
-                        Text(st.text)
+                        TextField("Amount", text: $ing.amount)
+                            .frame(width: 60)
+                            .keyboardType(.numbersAndPunctuation)
+
+                        TextField("Unit", text: $ing.unit)
+                            .frame(width: 60)
+                            .autocapitalization(.none)
+
+                        TextField("Ingredient", text: $ing.name)
+                    }
+                    .swipeActions {
+                        Button(role: .destructive) {
+                            if let idx = ingredients.firstIndex(where: { $0.id == ing.id }) {
+                                ingredients.remove(at: idx)
+                            }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
                     }
                 }
-                .onDelete(perform: deleteStep)
-            }
+                .onDelete { indices in
+                    ingredients.remove(atOffsets: indices)
+                }
 
+                Button {
+                    ingredients.append(Ingredient("", amount: "", unit: ""))
+                } label: {
+                    Label("Add Ingredient", systemImage: "plus")
+                }
+            }
+            .listRowBackground(Theme.card)
+
+            // STEPS
+            Section("STEPS") {
+                ForEach($steps) { $st in
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("\(st.order).")
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.subtext)
+                        TextField("Describe step", text: $st.text)
+                    }
+                    .swipeActions {
+                        Button(role: .destructive) {
+                            if let idx = steps.firstIndex(where: { $0.id == st.id }) {
+                                steps.remove(at: idx)
+                                reindexSteps()
+                            }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+                }
+                .onDelete {
+                    steps.remove(atOffsets: $0)
+                    reindexSteps()
+                }
+
+                Button {
+                    steps.append(StepItem((steps.last?.order ?? 0) + 1, ""))
+                } label: {
+                    Label("Add Step", systemImage: "plus")
+                }
+            }
+            .listRowBackground(Theme.card)
+
+            // SAVE
             Section {
                 Button(action: save) {
                     Text(editing == nil ? "Save Recipe" : "Update Recipe")
-                        .font(Theme.titleM())
+                        .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(RoundedRectangle(cornerRadius: 16).fill(Theme.olive))
-                        .foregroundStyle(.white)
                 }
-                .disabled(!canSave)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
+                .buttonStyle(.borderedProminent)
+                .tint(Theme.olive)
+                .listRowBackground(Theme.card)
             }
         }
         .scrollContentBackground(.hidden)
         .background(Theme.bg)
+        .tint(Theme.olive)
         .navigationTitle(editing == nil ? "Add Recipe" : "Edit Recipe")
-        .onChange(of: pickerItem) { _, newItem in
-            Task {
-                if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                    imageData = data
-                }
+        .toolbar { EditButton() }
+        .onAppear(perform: loadEditingIfAny)
+        .onChange(of: pickerItem) { newValue in
+            Task { await loadPickedImage(from: newValue) }
+        }
+        .alert("✅ Recipe saved successfully!", isPresented: $showSuccess) {
+            Button("OK") {
+                dismiss()
             }
         }
-        .onAppear(perform: loadIfEditing)
     }
 
-    // MARK: - Actions
-    private func loadIfEditing() {
-        guard let r = editing, title.isEmpty else { return }
-        // prefill fields
+    @ViewBuilder
+    private var previewImage: some View {
+        if let ui = pickedUIImage {
+            Image(uiImage: ui).resizable().scaledToFill()
+        } else if let data = existingImageData, let ui = UIImage(data: data) {
+            Image(uiImage: ui).resizable().scaledToFill()
+        } else {
+            ZStack {
+                Theme.card
+                Image(systemName: "leaf")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(Theme.olive)
+            }
+        }
+    }
+
+    private func loadPickedImage(from item: PhotosPickerItem?) async {
+        guard let item else { return }
+        do {
+            if let data = try await item.loadTransferable(type: Data.self) {
+                self.pickedImageData = data
+                self.pickedUIImage = UIImage(data: data)
+            }
+        } catch {
+            print("PhotosPicker load failed:", error.localizedDescription)
+            self.pickedImageData = nil
+            self.pickedUIImage = nil
+        }
+    }
+
+    private func reindexSteps() {
+        for i in 0..<steps.count { steps[i].order = i + 1 }
+    }
+
+    private func loadEditingIfAny() {
+        guard let r = editing else {
+            if ingredients.isEmpty { ingredients = [] }
+            if steps.isEmpty { steps = [] }
+            return
+        }
         title = r.title
-        minutes = r.minutes
-        servings = r.servings
+        minutes = String(r.minutes)
+        servings = String(r.servings)
         cuisine = r.cuisine ?? ""
-        region  = r.region ?? ""
+        region = r.region ?? ""
         ingredients = r.ingredients
         steps = r.steps
-        imageData = r.imageData
-    }
-
-    private func addIngredient() {
-        let name = ingName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty else { return }
-        ingredients.append(Ingredient(name, qty: ingQty.trimmingCharacters(in: .whitespacesAndNewlines)))
-        ingName = ""; ingQty = ""
-    }
-
-    private func addStep() {
-        let text = stepText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !text.isEmpty else { return }
-        let order = (steps.map { $0.order }.max() ?? 0) + 1
-        steps.append(StepItem(order, text))
-        stepText = ""
-    }
-
-    private func deleteStep(at offsets: IndexSet) {
-        var new = steps.sorted(by: { $0.order < $1.order })
-        new.remove(atOffsets: offsets)
-        for i in new.indices { new[i].order = i + 1 }
-        steps = new
     }
 
     private func save() {
-        var r = editing ?? Recipe(title: title, minutes: minutes, servings: servings)
-        r.title = title
-        r.minutes = minutes
-        r.servings = servings
-        r.cuisine = cuisine.isEmpty ? nil : cuisine
-        r.region  = region.isEmpty ? nil : region
-        r.ingredients = ingredients
-        r.steps = steps
-        r.imageData = imageData
+        let mins = Int(minutes) ?? 0
+        let serv = Int(servings) ?? 1
 
-        if editing == nil {
-            store.add(r)
-        } else {
-            store.update(r)
+        var newRecipe = Recipe(
+            title: title.isEmpty ? "Untitled" : title,
+            minutes: mins,
+            servings: serv,
+            cuisine: cuisine.isEmpty ? nil : cuisine,
+            region: region.isEmpty ? nil : region,
+            tags: [],
+            ingredients: ingredients,
+            steps: steps,
+            isFavorite: editing?.isFavorite ?? false,
+            imageData: nil,
+            assetName: nil
+        )
+
+        if let data = pickedImageData {
+            newRecipe.imageData = data
+        } else if let existing = editing?.imageData {
+            newRecipe.imageData = existing
         }
-        dismiss()
+
+        if let old = editing {
+            store.update(old, with: newRecipe)
+        } else {
+            store.add(newRecipe)
+        }
+
+        showSuccess = true
+    }
+}
+
+extension View {
+    func placeholder<Content: View>(
+        when shouldShow: Bool,
+        alignment: Alignment = .leading,
+        @ViewBuilder placeholder: () -> Content
+    ) -> some View {
+        ZStack(alignment: alignment) {
+            if shouldShow { placeholder() }
+            self
+        }
     }
 }

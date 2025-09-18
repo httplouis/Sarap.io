@@ -10,7 +10,7 @@ struct RecipeDetailView: View {
 
     var body: some View {
         List {
-            headerImage // always returns a View; empty case handled inside
+            headerImage
 
             Section {
                 HStack(spacing: 8) {
@@ -28,17 +28,19 @@ struct RecipeDetailView: View {
             Section("INGREDIENTS") {
                 ForEach(recipe.ingredients) { ing in
                     HStack {
-                        Text(ing.name)
+                        Text(ing.display) // ✅ now uses computed display
                         Spacer()
-                        if !ing.qty.isEmpty { Text(ing.qty).foregroundStyle(Theme.subtext) }
                     }
                 }
             }
 
             Section("STEPS") {
-                ForEach(recipe.steps.sorted(by: { $0.order < $1.order })) { st in
+                let sortedSteps = recipe.steps.sorted { $0.order < $1.order } // ✅ break into variable
+                ForEach(sortedSteps) { st in
                     HStack(alignment: .firstTextBaseline) {
-                        Text("\(st.order).").monospacedDigit().foregroundStyle(Theme.subtext)
+                        Text("\(st.order).")
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.subtext)
                         Text(st.text)
                     }
                 }
@@ -50,11 +52,12 @@ struct RecipeDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                Button { showEdit = true } label: { Image(systemName: "square.and.pencil") }
+                Button { showEdit = true } label: {
+                    Image(systemName: "square.and.pencil")
+                }
                 Button(role: .destructive) { showDeleteConfirm = true } label: {
                     Image(systemName: "trash")
                 }
-
                 Button { store.toggleFavorite(recipe) } label: {
                     Image(systemName: recipe.isFavorite ? "heart.fill" : "heart")
                 }
@@ -71,7 +74,6 @@ struct RecipeDetailView: View {
                 .presentationDetents([.large])
         }
         .fullScreenCover(isPresented: $showImageFull) {
-            // full screen photo supports both user photo and asset
             if let img = recipe.resolvedImage() {
                 ZStack {
                     Color.black.ignoresSafeArea()
@@ -83,20 +85,18 @@ struct RecipeDetailView: View {
         }
     }
 
-    // MARK: - Header Image (handles both user image and asset)
     @ViewBuilder
     private var headerImage: some View {
-        if let img = recipe.resolvedImage() {
-            img.resizable()
+        if let imgName = recipe.imageName {
+            Image(imgName)
+                .resizable()
                 .scaledToFill()
                 .frame(height: 200)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
-                .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 4, trailing: 16))
                 .onTapGesture { showImageFull = true }
         } else {
             EmptyView()
-                .listRowInsets(EdgeInsets()) // keep spacing tidy when no image
         }
     }
 }

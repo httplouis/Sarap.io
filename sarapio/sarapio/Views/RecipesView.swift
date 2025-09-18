@@ -1,3 +1,4 @@
+// RecipesView.swift
 import SwiftUI
 
 struct RecipesView: View {
@@ -40,20 +41,23 @@ struct RecipesView: View {
 
                 // Header
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Sarap.io").font(Theme.titleXL()).foregroundStyle(Theme.text)
+                    Text("Sarap.io")
+                        .font(Theme.titleXL())
+                        .foregroundStyle(Theme.text)
                     Spacer()
                     NavigationLink { AddRecipeView() } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .bold))
-                            .padding(10)
-                            .background(Circle().fill(Theme.olive))
+                        Text("Add a recipe")
+                            .font(.system(size: 16, weight: .semibold))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.olive))
                             .foregroundStyle(.white)
                             .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
                     }
                 }
                 .padding(.top, 8)
 
-                // Search
+                // Search bar
                 HStack(spacing: 10) {
                     Image(systemName: "magnifyingglass").foregroundStyle(Theme.subtext)
                     TextField("Search recipes or ingredients", text: $searchText)
@@ -75,7 +79,7 @@ struct RecipesView: View {
                     .padding(.vertical, 2)
                 }
 
-                // Cards
+                // Recipe cards
                 VStack(spacing: 14) {
                     ForEach(filtered) { r in
                         NavigationLink { RecipeDetailView(recipe: r) } label: {
