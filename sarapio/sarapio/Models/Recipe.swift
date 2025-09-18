@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct Recipe: Identifiable, Equatable {
+struct Recipe: Identifiable, Equatable, Hashable {
     let id = UUID()
 
     var title: String
@@ -16,10 +16,7 @@ struct Recipe: Identifiable, Equatable {
     var isFavorite: Bool = false
 
     // Images
-    /// If user added a photo, we store it here.
     var imageData: Data? = nil
-    /// For seeded/static recipes, use an asset name (e.g., "shrimp", "chicken-adobo", "veggie").
-    /// If `imageData` exists, it takes priority over `assetName`.
     var assetName: String? = nil
     var imageName: String? = nil
 }

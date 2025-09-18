@@ -2,6 +2,7 @@ import SwiftUI
 
 struct RecipeDetailView: View {
     @EnvironmentObject private var store: RecipeStore
+    @Environment(\.dismiss) private var dismiss   // ✅ para makabalik after delete
     @State private var showImageFull = false
     @State private var showDeleteConfirm = false
     @State private var showEdit = false
@@ -28,14 +29,14 @@ struct RecipeDetailView: View {
             Section("INGREDIENTS") {
                 ForEach(recipe.ingredients) { ing in
                     HStack {
-                        Text(ing.display) // ✅ now uses computed display
+                        Text(ing.display) // ✅ computed property for qty + name
                         Spacer()
                     }
                 }
             }
 
             Section("STEPS") {
-                let sortedSteps = recipe.steps.sorted { $0.order < $1.order } // ✅ break into variable
+                let sortedSteps = recipe.steps.sorted { $0.order < $1.order }
                 ForEach(sortedSteps) { st in
                     HStack(alignment: .firstTextBaseline) {
                         Text("\(st.order).")
@@ -66,6 +67,7 @@ struct RecipeDetailView: View {
         .confirmationDialog("Delete this recipe?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 store.delete(recipe)
+                dismiss()   // ✅ balik agad sa home/list
             }
             Button("Cancel", role: .cancel) {}
         }

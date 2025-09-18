@@ -1,3 +1,4 @@
+// File: Views/AddRecipeView.swift
 import SwiftUI
 import PhotosUI
 import UIKit
@@ -8,22 +9,23 @@ struct AddRecipeView: View {
 
     var editing: Recipe?
 
+    // MARK: - Form fields
     @State private var title: String = ""
     @State private var minutes: String = ""
     @State private var servings: String = ""
     @State private var cuisine: String = ""
     @State private var region: String = ""
 
+    // Editable rows
     @State private var ingredients: [Ingredient] = []
     @State private var steps: [StepItem] = []
 
+    // MARK: - Image picking
     @State private var pickerItem: PhotosPickerItem?
     @State private var pickedImageData: Data?
     @State private var pickedUIImage: UIImage?
 
     private var existingImageData: Data? { editing?.imageData }
-
-    @State private var showSuccess = false
 
     init(editing: Recipe? = nil) {
         self.editing = editing
@@ -52,18 +54,21 @@ struct AddRecipeView: View {
             // BASIC
             Section("BASIC") {
                 TextField("Title", text: $title)
+
                 HStack {
-                    TextField("Minutes", text: $minutes)
+                    TextField("", text: $minutes)
                         .keyboardType(.numberPad)
                         .placeholder(when: minutes.isEmpty) {
                             Text("Minutes").foregroundColor(.gray)
                         }
-                    TextField("Servings", text: $servings)
+
+                    TextField("", text: $servings)
                         .keyboardType(.numberPad)
                         .placeholder(when: servings.isEmpty) {
                             Text("Servings").foregroundColor(.gray)
                         }
                 }
+
                 TextField("Cuisine (optional)", text: $cuisine)
                 TextField("Region (optional)", text: $region)
             }
@@ -73,24 +78,29 @@ struct AddRecipeView: View {
             Section("INGREDIENTS") {
                 ForEach($ingredients) { $ing in
                     HStack {
-                        TextField("Amount", text: $ing.amount)
-                            .frame(width: 60)
-                            .keyboardType(.numbersAndPunctuation)
-
-                        TextField("Unit", text: $ing.unit)
-                            .frame(width: 60)
-                            .autocapitalization(.none)
-
-                        TextField("Ingredient", text: $ing.name)
+                        TextField("", text: $ing.name)
+                            .placeholder(when: ing.name.isEmpty) {
+                                Text("Ingredient").foregroundColor(.gray)
+                            }
+                        TextField("", text: $ing.amount)
+                            .multilineTextAlignment(.trailing)
+                            .foregroundStyle(Theme.subtext)
+                            .placeholder(when: ing.amount.isEmpty) {
+                                Text("Amount").foregroundColor(.gray)
+                            }
+                        TextField("", text: $ing.unit)
+                            .multilineTextAlignment(.trailing)
+                            .foregroundStyle(Theme.subtext)
+                            .placeholder(when: ing.unit.isEmpty) {
+                                Text("Unit").foregroundColor(.gray)
+                            }
                     }
                     .swipeActions {
                         Button(role: .destructive) {
                             if let idx = ingredients.firstIndex(where: { $0.id == ing.id }) {
                                 ingredients.remove(at: idx)
                             }
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
+                        } label: { Label("Delete", systemImage: "trash") }
                     }
                 }
                 .onDelete { indices in
@@ -98,7 +108,7 @@ struct AddRecipeView: View {
                 }
 
                 Button {
-                    ingredients.append(Ingredient("", amount: "", unit: ""))
+                    ingredients.append(Ingredient("New Ingredient"))
                 } label: {
                     Label("Add Ingredient", systemImage: "plus")
                 }
@@ -112,7 +122,11 @@ struct AddRecipeView: View {
                         Text("\(st.order).")
                             .monospacedDigit()
                             .foregroundStyle(Theme.subtext)
-                        TextField("Describe step", text: $st.text)
+
+                        TextField("", text: $st.text)
+                            .placeholder(when: st.text.isEmpty) {
+                                Text("Step description").foregroundColor(.gray)
+                            }
                     }
                     .swipeActions {
                         Button(role: .destructive) {
@@ -120,9 +134,7 @@ struct AddRecipeView: View {
                                 steps.remove(at: idx)
                                 reindexSteps()
                             }
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
+                        } label: { Label("Delete", systemImage: "trash") }
                     }
                 }
                 .onDelete {
@@ -131,7 +143,7 @@ struct AddRecipeView: View {
                 }
 
                 Button {
-                    steps.append(StepItem((steps.last?.order ?? 0) + 1, ""))
+                    steps.append(StepItem(order: (steps.last?.order ?? 0) + 1, text: ""))
                 } label: {
                     Label("Add Step", systemImage: "plus")
                 }
@@ -157,16 +169,12 @@ struct AddRecipeView: View {
         .navigationTitle(editing == nil ? "Add Recipe" : "Edit Recipe")
         .toolbar { EditButton() }
         .onAppear(perform: loadEditingIfAny)
-        .onChange(of: pickerItem) { newValue in
-            Task { await loadPickedImage(from: newValue) }
-        }
-        .alert("✅ Recipe saved successfully!", isPresented: $showSuccess) {
-            Button("OK") {
-                dismiss()
-            }
+        .onChange(of: pickerItem) {
+            Task { await loadPickedImage(from: pickerItem) }
         }
     }
 
+    // MARK: - Preview image
     @ViewBuilder
     private var previewImage: some View {
         if let ui = pickedUIImage {
@@ -183,6 +191,7 @@ struct AddRecipeView: View {
         }
     }
 
+    // MARK: - PhotosPicker loader
     private func loadPickedImage(from item: PhotosPickerItem?) async {
         guard let item else { return }
         do {
@@ -197,6 +206,7 @@ struct AddRecipeView: View {
         }
     }
 
+    // MARK: - Helpers
     private func reindexSteps() {
         for i in 0..<steps.count { steps[i].order = i + 1 }
     }
@@ -231,7 +241,7 @@ struct AddRecipeView: View {
             steps: steps,
             isFavorite: editing?.isFavorite ?? false,
             imageData: nil,
-            assetName: nil
+            imageName: nil
         )
 
         if let data = pickedImageData {
@@ -245,20 +255,6 @@ struct AddRecipeView: View {
         } else {
             store.add(newRecipe)
         }
-
-        showSuccess = true
-    }
-}
-
-extension View {
-    func placeholder<Content: View>(
-        when shouldShow: Bool,
-        alignment: Alignment = .leading,
-        @ViewBuilder placeholder: () -> Content
-    ) -> some View {
-        ZStack(alignment: alignment) {
-            if shouldShow { placeholder() }
-            self
-        }
+        dismiss()
     }
 }

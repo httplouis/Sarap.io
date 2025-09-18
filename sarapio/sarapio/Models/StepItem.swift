@@ -1,6 +1,6 @@
 import Foundation
 
-struct StepItem: Identifiable, Equatable {
+struct StepItem: Identifiable, Equatable, Hashable {
     let id = UUID()
     var order: Int
     var text: String
