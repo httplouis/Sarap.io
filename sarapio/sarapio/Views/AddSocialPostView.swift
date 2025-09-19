@@ -2,8 +2,11 @@ import SwiftUI
 
 struct AddSocialPostView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: RecipeStore
+    
+    // simulate current logged-in user (replace with real auth later)
+    let currentUser = "moris123"
 
-    @State private var user: String = "@you"
     @State private var caption: String = ""
     @State private var selectedRecipe: Recipe? = nil
 
@@ -11,26 +14,52 @@ struct AddSocialPostView: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                Section("User") {
-                    TextField("Username", text: $user)
+            VStack(spacing: 16) {
+                // Profile header row
+                HStack(spacing: 12) {
+                    Image(systemName: "person.circle.fill")
+                        .resizable()
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(Theme.olive)
+                    VStack(alignment: .leading) {
+                        Text("@\(currentUser)")
+                            .font(.headline)
+                        Text("What's cooking today?")
+                            .font(.subheadline)
+                            .foregroundStyle(.gray)
+                    }
+                    Spacer()
                 }
+                .padding(.horizontal)
 
-                Section("Caption") {
-                    TextField("Write something...", text: $caption, axis: .vertical)
-                        .lineLimit(3, reservesSpace: true)
-                }
+                // Caption input
+                TextEditor(text: $caption)
+                    .frame(minHeight: 120)
+                    .padding(8)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Theme.card))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
+                    .padding(.horizontal)
 
-                Section("Attach Recipe") {
+                // Recipe selector
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Attach a Recipe (optional)")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.subtext)
+
                     Picker("Select a recipe", selection: $selectedRecipe) {
                         Text("None").tag(nil as Recipe?)
-                        ForEach(SampleData.recipes, id: \.id) { r in
-                            Text(r.title).tag(r as Recipe?)
+                        ForEach(store.recipes, id: \.id) { recipe in
+                            Text(recipe.title).tag(recipe as Recipe?)
                         }
                     }
+                    .pickerStyle(.menu)
+                    .padding(.horizontal)
                 }
+
+                Spacer()
             }
             .navigationTitle("New Post")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
@@ -39,7 +68,7 @@ struct AddSocialPostView: View {
                     Button("Post") {
                         let newPost = SocialPost(
                             id: UUID(),
-                            user: user,
+                            user: currentUser,
                             avatar: "person.circle.fill",
                             caption: caption,
                             recipe: selectedRecipe ?? SampleData.recipes[0],
@@ -50,7 +79,7 @@ struct AddSocialPostView: View {
                         onSave(newPost)
                         dismiss()
                     }
-                    .disabled(caption.isEmpty)
+                    .disabled(caption.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
         }
