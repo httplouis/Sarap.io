@@ -3,33 +3,36 @@ import SwiftUI
 struct SocialFeedView: View {
     @EnvironmentObject private var store: RecipeStore
     @State private var posts: [SocialPost] = SocialSampleData.posts
-    @State private var showAddPost = false
+    @State private var showMessages = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 20) {
+                LazyVStack(spacing: 22) {
                     ForEach($posts) { $post in
                         SocialPostCard(post: $post)
                     }
                 }
-                .padding()
+                .padding(.horizontal)
+                .padding(.top, 10)
             }
-            .background(Theme.bg)
+            .background(Theme.bg.ignoresSafeArea())
             .navigationTitle("Feed")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        showAddPost = true
+                        showMessages = true
                     } label: {
-                        Image(systemName: "plus.circle.fill")
+                        Image(systemName: "paperplane.fill")
+                            .font(.title2)
+                            .foregroundStyle(Theme.olive)
+                            .padding(.trailing, 6) // ✅ added breathing space from screen edge
                     }
                 }
             }
-            .sheet(isPresented: $showAddPost) {
-                AddSocialPostView { newPost in
-                    posts.insert(newPost, at: 0) // add sa taas ng feed
-                }
+            .sheet(isPresented: $showMessages) {
+                MessagesView()
             }
         }
     }
@@ -41,107 +44,134 @@ struct SocialPostCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Profile row
+
+            // --- Profile Row ---
             HStack(spacing: 10) {
-                if let avatar = post.avatar,
-                   let uiImage = UIImage(named: avatar) {
+                if let avatar = post.avatar, let uiImage = UIImage(named: avatar) {
                     Image(uiImage: uiImage)
                         .resizable()
                         .scaledToFill()
                         .frame(width: 36, height: 36)
                         .clipShape(Circle())
                 } else {
-                    Image(systemName: "person.circle.fill")
-                        .resizable()
-                        .scaledToFit()
+                    Circle()
+                        .fill(Theme.olive)
                         .frame(width: 36, height: 36)
-                        .foregroundStyle(Theme.olive)
+                        .overlay(
+                            Image(systemName: "person.fill")
+                                .foregroundStyle(.white)
+                        )
                 }
-                Text("@\(post.user)")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Theme.text)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("@\(post.user)")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(Theme.text)
+                    Text("Posted 2h ago")
+                        .font(.caption2)
+                        .foregroundStyle(.gray)
+                }
+
                 Spacer()
+
+                Button { } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.headline)
+                        .foregroundStyle(.gray)
+                }
             }
 
-            // Recipe image
+            // --- Recipe Image ---
             if let imgName = post.recipe.imageName {
                 Image(imgName)
                     .resizable()
                     .scaledToFill()
-                    .frame(height: 220)
+                    .frame(maxHeight: 280)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
-            } else if let data = post.recipe.imageData,
-                      let ui = UIImage(data: data) {
+                    .clipped()
+            } else if let data = post.recipe.imageData, let ui = UIImage(data: data) {
                 Image(uiImage: ui)
                     .resizable()
                     .scaledToFill()
-                    .frame(height: 220)
+                    .frame(maxHeight: 280)
                     .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .clipped()
             }
 
-            // Caption
-            Text(post.caption)
-                .font(.body)
-                .foregroundStyle(Theme.text)
-
-            // Stats row
-            HStack(spacing: 12) {
-                Label("\(post.likes)", systemImage: "heart.fill")
-                    .foregroundStyle(.pink)
-                Label("\(post.rating)/5", systemImage: "star.fill")
-                    .foregroundStyle(.yellow)
-            }
-            .font(.footnote)
-
-            // Action row
+            // --- Action Buttons Row ---
             HStack(spacing: 20) {
                 Button { post.likes += 1 } label: {
-                    Label("Like", systemImage: "heart")
+                    Image(systemName: "heart")
+                        .font(.title3)
+                        .foregroundStyle(Theme.subtext)
                 }
                 Button { } label: {
-                    Label("Comment", systemImage: "bubble.right")
+                    Image(systemName: "bubble.right")
+                        .font(.title3)
+                        .foregroundStyle(Theme.subtext)
                 }
                 Button { } label: {
-                    Label("Share", systemImage: "square.and.arrow.up")
+                    Image(systemName: "paperplane")
+                        .font(.title3)
+                        .foregroundStyle(Theme.subtext)
                 }
-                Button { } label: {
-                    Label("Message", systemImage: "paperplane")
-                }
-            }
-            .font(.footnote)
-            .foregroundStyle(Theme.subtext)
 
-            Divider()
+                Spacer()
 
-            // Comments preview
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(post.comments.prefix(2), id: \.self) { c in
-                    Text("💬 \(c)")
-                        .font(.footnote)
+                Button { } label: {
+                    Image(systemName: "bookmark")
+                        .font(.title3)
                         .foregroundStyle(Theme.subtext)
                 }
             }
 
-            // Extra actions
+            // --- Likes Count & Caption ---
+            Text("\(post.likes) likes")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .foregroundStyle(Theme.text)
+                .padding(.top, 4)
+
+            Text(post.caption)
+                .font(.body)
+                .foregroundStyle(Theme.text)
+                .padding(.bottom, 4)
+
+            // --- Comments Preview ---
+            if !post.comments.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(post.comments.prefix(2), id: \.self) { c in
+                        Text("💬 \(c)")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.subtext)
+                    }
+                }
+                .padding(.top, 2)
+            }
+
+            // --- Copy & Rate ---
+            Divider().padding(.vertical, 4)
             HStack {
                 Button {
-                    store.add(post.recipe) // copy to personal recipes
+                    store.add(post.recipe)
                 } label: {
-                    Label("Copy to My Recipes", systemImage: "tray.and.arrow.down")
+                    Label("Copy Recipe", systemImage: "tray.and.arrow.down")
+                        .labelStyle(.titleAndIcon)
                 }
 
                 Spacer()
 
                 Button { } label: {
                     Label("Rate", systemImage: "star")
+                        .labelStyle(.titleAndIcon)
                 }
             }
             .font(.footnote)
             .foregroundStyle(Theme.olive)
         }
         .padding()
-        .background(RoundedRectangle(cornerRadius: 16).fill(Theme.card))
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: 18).fill(Theme.card))
+        .shadow(color: .black.opacity(0.05), radius: 3, y: 2)
     }
 }
