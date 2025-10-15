@@ -14,7 +14,8 @@ enum SocialSampleData {
                 "Grabe, I tried this and super dali lang gawin 😋",
                 "Mas masarap pag may kanin! 🍚"
             ],
-            rating: 4
+            rating: 4,
+            isLiked: false
         ),
         SocialPost(
             id: UUID(),
@@ -28,7 +29,8 @@ enum SocialSampleData {
                 "Favorite ng pamilya ko ‘to, swear!",
                 "Best with extra rice, agree? 😂"
             ],
-            rating: 5
+            rating: 5,
+            isLiked: false
         ),
         SocialPost(
             id: UUID(),
@@ -42,7 +44,8 @@ enum SocialSampleData {
                 "Super colorful plate! ang ganda tignan 😮",
                 "Masarap ‘to with konting sesame oil 👌"
             ],
-            rating: 3
+            rating: 3,
+            isLiked: false
         )
     ]
 }

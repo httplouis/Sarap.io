@@ -3,6 +3,7 @@ import SwiftUI
 struct RecipeDetailView: View {
     @EnvironmentObject private var store: RecipeStore
     @Environment(\.dismiss) private var dismiss   // ✅ para makabalik after delete
+    @StateObject private var speaker = SpeechAssistant()
     @State private var showImageFull = false
     @State private var showDeleteConfirm = false
     @State private var showEdit = false
@@ -33,6 +34,14 @@ struct RecipeDetailView: View {
                         Spacer()
                     }
                 }
+                Button {
+                    speaker.speakIngredients(recipe.ingredients)
+                } label: {
+                    Label("Speak Ingredients", systemImage: "speaker.wave.2.fill")
+                        .font(.footnote)
+                }
+                .buttonStyle(.borderless)
+                .tint(Theme.olive)
             }
 
             Section("STEPS") {
@@ -45,6 +54,14 @@ struct RecipeDetailView: View {
                         Text(st.text)
                     }
                 }
+                Button {
+                    speaker.speakSteps(sortedSteps)
+                } label: {
+                    Label("Speak Steps", systemImage: "text.book.closed")
+                        .font(.footnote)
+                }
+                .buttonStyle(.borderless)
+                .tint(Theme.olive)
             }
         }
         .scrollContentBackground(.hidden)
@@ -53,6 +70,16 @@ struct RecipeDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
+                Menu {
+                    Button("Speak Ingredients") { speaker.speakIngredients(recipe.ingredients) }
+                    Button("Speak Steps") { speaker.speakSteps(recipe.steps) }
+                    Button("Next Step") { speaker.speakNextStep(from: recipe.steps) }
+                    if speaker.isSpeaking {
+                        Button("Stop") { speaker.stop() }
+                    }
+                } label: {
+                    Image(systemName: "ear")
+                }
                 Button { showEdit = true } label: {
                     Image(systemName: "square.and.pencil")
                 }
@@ -85,6 +112,7 @@ struct RecipeDetailView: View {
                 }
             }
         }
+        .onDisappear { speaker.stop() }
     }
 
     @ViewBuilder

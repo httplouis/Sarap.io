@@ -2,6 +2,7 @@ import SwiftUI
 
 struct IngredientsSection: View {
     @Binding var ingredients: [Ingredient]
+    var unitOptions: [String]
 
     var body: some View {
         Section("INGREDIENTS") {
@@ -11,9 +12,22 @@ struct IngredientsSection: View {
                     TextField("Amount", text: $ing.amount)
                         .multilineTextAlignment(.trailing)
                         .foregroundStyle(Theme.subtext)
-                    TextField("Unit", text: $ing.unit)
-                        .multilineTextAlignment(.trailing)
-                        .foregroundStyle(Theme.subtext)
+                    HStack(spacing: 4) {
+                        TextField("Unit", text: $ing.unit)
+                            .frame(width: 60)
+                            .multilineTextAlignment(.trailing)
+                            .foregroundStyle(Theme.subtext)
+                        Menu {
+                            ForEach(unitOptions, id: \.self) { option in
+                                Button(option) { ing.unit = option }
+                            }
+                            Button("Clear") { ing.unit = "" }
+                        } label: {
+                            Image(systemName: "chevron.down")
+                                .padding(6)
+                                .background(RoundedRectangle(cornerRadius: 8).fill(Theme.bg))
+                        }
+                    }
                 }
                 .swipeActions {
                     Button(role: .destructive) {

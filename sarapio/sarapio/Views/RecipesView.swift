@@ -3,6 +3,7 @@ import SwiftUI
 
 struct RecipesView: View {
     @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var auth: AuthManager
 
     @State private var searchText = ""
     @State private var filterUnder30 = false
@@ -10,6 +11,7 @@ struct RecipesView: View {
     @State private var filterFavorites = false
     @State private var filterLucena = false
     @State private var filterFilipino = false
+    @State private var showOnlyMine = false
 
     private var filtered: [Recipe] {
         store.recipes.filter { r in
@@ -30,8 +32,9 @@ struct RecipesView: View {
             let hitsFav   = !filterFavorites || r.isFavorite
             let hitsLuc   = !filterLucena || (r.region?.localizedCaseInsensitiveContains("Lucena") ?? false)
             let hitsFil   = !filterFilipino || (r.cuisine?.localizedCaseInsensitiveContains("Filipino") ?? false)
+            let hitsMine  = !showOnlyMine || r.ownerId == auth.currentUser?.id
 
-            return hitsText && hitsUnder && hitsVeg && hitsFav && hitsLuc && hitsFil
+            return hitsText && hitsUnder && hitsVeg && hitsFav && hitsLuc && hitsFil && hitsMine
         }
     }
 
@@ -75,9 +78,24 @@ struct RecipesView: View {
                         Chip("Favorites", isOn: $filterFavorites)
                         Chip("Lucena", isOn: $filterLucena)
                         Chip("Filipino", isOn: $filterFilipino)
+                        Chip("My Recipes", isOn: $showOnlyMine)
                     }
                     .padding(.vertical, 2)
                 }
+
+                Button("Clear Filters") {
+                    withAnimation {
+                        searchText = ""
+                        filterUnder30 = false
+                        filterVeggie = false
+                        filterFavorites = false
+                        filterLucena = false
+                        filterFilipino = false
+                        showOnlyMine = false
+                    }
+                }
+                .font(.footnote)
+                .foregroundStyle(Theme.olive)
 
                 // Recipe cards
                 VStack(spacing: 14) {
@@ -98,6 +116,19 @@ struct RecipesView: View {
                     }
                 }
                 .padding(.bottom, 24)
+
+                if filtered.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "text.magnifyingglass")
+                            .font(.largeTitle)
+                            .foregroundStyle(Theme.subtext)
+                        Text("No recipes match your filters yet.")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.subtext)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 40)
+                }
             }
             .padding(.horizontal, 20)
         }

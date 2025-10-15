@@ -1,43 +1,61 @@
 import SwiftUI
 
 struct NotificationsView: View {
-    private let dummy = [
-        ("chef_ana", "liked your post 🍲", "2h"),
-        ("veggiequeen", "commented: 'Ang sarap nito! 😋'", "5h"),
-        ("foodieluke", "started following you", "1d")
-    ]
-    
+    @State private var notifications: [AppNotification] = NotificationSampleData.notifications
+
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 16) {
-                ForEach(dummy, id: \.0) { n in
-                    HStack(spacing: 12) {
-                        Circle()
-                            .fill(Theme.olive)
-                            .frame(width: 44, height: 44)
-                            .overlay(Text(String(n.0.prefix(1)).uppercased())
-                                     .font(.headline)
-                                     .foregroundStyle(.white))
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("@\(n.0)")
-                                .font(.headline)
-                            Text(n.1)
-                                .foregroundStyle(Theme.text)
-                            Text(n.2)
-                                .font(.caption)
-                                .foregroundStyle(.gray)
+        List {
+            Section("Activity") {
+                ForEach($notifications) { $notification in
+                    NotificationRow(notification: $notification)
+                        .listRowBackground(Theme.card)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(notification.isRead ? "Unread" : "Mark Read") {
+                                notification.isRead.toggle()
+                            }
+                            .tint(notification.isRead ? .orange : Theme.olive)
                         }
-                        Spacer()
-                    }
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Theme.card))
-                    .shadow(color: .black.opacity(0.05), radius: 4, y: 3)
-                    .padding(.horizontal)
                 }
             }
-            .padding(.top)
         }
+        .scrollContentBackground(.hidden)
         .background(Theme.bg.ignoresSafeArea())
+        .navigationTitle("Notifications")
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Clear") { notifications.removeAll() }
+                    .disabled(notifications.isEmpty)
+            }
+        }
+    }
+}
+
+private struct NotificationRow: View {
+    @Binding var notification: AppNotification
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(notification.isRead ? Theme.oliveSoft : Theme.olive)
+                .frame(width: 44, height: 44)
+                .overlay(
+                    Image(systemName: notification.isRead ? "bell" : "bell.badge.fill")
+                        .foregroundStyle(notification.isRead ? Theme.olive : .white)
+                )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(notification.title)
+                    .font(.headline)
+                    .foregroundStyle(Theme.text)
+                Text(notification.message)
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.subtext)
+                Text(notification.relativeDate)
+                    .font(.caption)
+                    .foregroundStyle(.gray)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 8)
     }
 }
