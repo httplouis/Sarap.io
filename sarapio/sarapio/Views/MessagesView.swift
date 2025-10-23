@@ -22,12 +22,14 @@ struct MessagesView: View {
         .navigationTitle("Messages")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("New Chat") { /* placeholder for finals */ }
+                Button("New Chat") { }
                     .disabled(true)
             }
         }
     }
 }
+
+// MARK: - Conversation Cell
 
 private struct ConversationCell: View {
     let thread: MessageThread
@@ -37,7 +39,11 @@ private struct ConversationCell: View {
             Circle()
                 .fill(Theme.olive)
                 .frame(width: 46, height: 46)
-                .overlay(Text(String(thread.user.prefix(2))).uppercase().fontWeight(.bold).foregroundStyle(.white))
+                .overlay(
+                    Text(String(thread.user.prefix(2)).uppercased())
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.white)
+                )
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(thread.user)
@@ -46,7 +52,9 @@ private struct ConversationCell: View {
                     .font(.subheadline)
                     .foregroundStyle(Theme.subtext)
             }
+
             Spacer()
+
             Text(thread.relativeDate)
                 .font(.caption)
                 .foregroundStyle(Theme.subtext)
@@ -54,6 +62,8 @@ private struct ConversationCell: View {
         .padding(.vertical, 6)
     }
 }
+
+// MARK: - Chat Thread View
 
 private struct ChatThreadView: View {
     @State private var thread: MessageThread
@@ -85,7 +95,9 @@ private struct ChatThreadView: View {
                     .padding()
                 }
                 .onAppear {
-                    if let last = thread.messages.last { proxy.scrollTo(last.id, anchor: .bottom) }
+                    if let last = thread.messages.last {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
                 }
             }
 

@@ -15,10 +15,12 @@ struct ContentView: View {
     }
 }
 
-private enum MainTab: Int, CaseIterable {
+// MARK: - Main Tabs Enum
+enum MainTab: Int, CaseIterable {
     case recipes, feed, notifications, messages, profile
 }
 
+// MARK: - Main TabView
 struct MainTabView: View {
     @EnvironmentObject private var store: RecipeStore
     @EnvironmentObject private var auth: AuthManager
@@ -30,65 +32,54 @@ struct MainTabView: View {
     var body: some View {
         ZStack {
             TabView(selection: $selectedTab) {
-                NavigationStack {
-                    RecipesView()
-                        .navigationTitle("My Recipes")
-                        .toolbar { toolbarItems }
-                }
-                .tag(MainTab.recipes)
+                RecipesView()
+                    .embedInNav("My Recipes")
+                    .tag(MainTab.recipes)
 
-                NavigationStack {
-                    SocialFeedView(showComposer: $showAddPost)
-                        .toolbar { toolbarItems }
-                }
-                .tag(MainTab.feed)
+                SocialFeedView(showComposer: $showAddPost)
+                    .embedInNav("Feed")
+                    .tag(MainTab.feed)
 
-                NavigationStack {
-                    NotificationsView()
-                        .navigationTitle("Notifications")
-                        .toolbar { toolbarItems }
-                }
-                .tag(MainTab.notifications)
+                NotificationsView()
+                    .embedInNav("Notifications")
+                    .tag(MainTab.notifications)
 
-                NavigationStack {
-                    MessagesView()
-                        .toolbar { toolbarItems }
-                }
-                .tag(MainTab.messages)
+                MessagesView()
+                    .embedInNav("Messages")
+                    .tag(MainTab.messages)
 
-                NavigationStack {
-                    ProfileView()
-                        .toolbar { toolbarItems }
-                }
-                .tag(MainTab.profile)
+                ProfileView()
+                    .embedInNav("Profile")
+                    .tag(MainTab.profile)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
 
             VStack {
                 Spacer()
-                BottomBar(selectedTab: $selectedTab, addRecipeAction: { showAddRecipe = true })
-                    .padding(.bottom, 8)
+                BottomBar(selectedTab: $selectedTab) {
+                    showAddRecipe = true
+                }
+                .padding(.bottom, 8)
             }
         }
         .sheet(isPresented: $showAddRecipe) {
             NavigationStack { AddRecipeView() }
         }
-        .background(Theme.bg.ignoresSafeArea())
-    }
-
-    @ToolbarContentBuilder
-    private var toolbarItems: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            Button("Logout") { auth.logout() }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button("Logout") { auth.logout() }
+            }
         }
+        .background(Theme.bg.ignoresSafeArea())
     }
 }
 
-private struct BottomBar: View {
+// MARK: - Bottom Bar
+struct BottomBar: View {
     @Binding var selectedTab: MainTab
     var addRecipeAction: () -> Void
 
-    private var tabs: [MainTab] = MainTab.allCases
+    private let tabs: [MainTab] = MainTab.allCases
 
     var body: some View {
         ZStack {
@@ -149,6 +140,17 @@ private struct BottomBar: View {
         case .notifications: return "Alerts"
         case .messages: return "Messages"
         case .profile: return "Profile"
+        }
+    }
+}
+
+// MARK: - Navigation Helper
+extension View {
+    func embedInNav(_ title: String) -> some View {
+        NavigationStack {
+            self
+                .navigationTitle(title)
+                .navigationBarTitleDisplayMode(.inline)
         }
     }
 }
