@@ -1,11 +1,15 @@
 import SwiftUI
+import AVFoundation
 
 struct RecipeDetailView: View {
     @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var session: SessionManager
     @Environment(\.dismiss) private var dismiss   // ✅ para makabalik after delete
     @State private var showImageFull = false
     @State private var showDeleteConfirm = false
     @State private var showEdit = false
+    @StateObject private var narrator = RecipeNarrator()
+    @State private var currentStepIndex = 0
 
     let recipe: Recipe
 
@@ -46,6 +50,27 @@ struct RecipeDetailView: View {
                     }
                 }
             }
+
+            Section("VOICE") {
+                Button {
+                    speakIngredients()
+                } label: {
+                    Label("Speak Ingredients", systemImage: "speaker.wave.2.fill")
+                }
+
+                Button {
+                    startStepNarration()
+                } label: {
+                    Label("Speak Steps", systemImage: "list.number")
+                }
+
+                Button {
+                    speakNextStep()
+                } label: {
+                    Label("Next Step", systemImage: "arrowtriangle.forward.fill")
+                }
+                .disabled(recipe.steps.isEmpty)
+            }
         }
         .scrollContentBackground(.hidden)
         .background(Theme.bg)
@@ -73,6 +98,8 @@ struct RecipeDetailView: View {
         }
         .sheet(isPresented: $showEdit) {
             NavigationStack { AddRecipeView(editing: recipe) }
+                .environmentObject(store)
+                .environmentObject(session)
                 .presentationDetents([.large])
         }
         .fullScreenCover(isPresented: $showImageFull) {
@@ -85,6 +112,7 @@ struct RecipeDetailView: View {
                 }
             }
         }
+        .onDisappear { narrator.stop() }
     }
 
     @ViewBuilder
@@ -99,6 +127,31 @@ struct RecipeDetailView: View {
                 .onTapGesture { showImageFull = true }
         } else {
             EmptyView()
+        }
+    }
+
+    private func speakIngredients() {
+        let lines = recipe.ingredients.map { $0.display }.joined(separator: ". ")
+        narrator.speak("Ingredients: " + lines)
+    }
+
+    private func startStepNarration() {
+        currentStepIndex = 0
+        guard !recipe.steps.isEmpty else { return }
+        let sorted = recipe.steps.sorted { $0.order < $1.order }
+        narrator.speak("Let's cook \(recipe.title).")
+        narrator.append("Step 1: " + sorted[0].text)
+    }
+
+    private func speakNextStep() {
+        let sorted = recipe.steps.sorted { $0.order < $1.order }
+        guard !sorted.isEmpty else { return }
+        if currentStepIndex < sorted.count - 1 {
+            currentStepIndex += 1
+            let stepNumber = sorted[currentStepIndex].order
+            narrator.speak("Step \(stepNumber): " + sorted[currentStepIndex].text)
+        } else {
+            narrator.speak("That's the last step. Enjoy your meal!")
         }
     }
 }

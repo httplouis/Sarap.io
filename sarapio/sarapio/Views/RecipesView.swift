@@ -3,6 +3,7 @@ import SwiftUI
 
 struct RecipesView: View {
     @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var bottomBar: BottomBarState
 
     @State private var searchText = ""
     @State private var filterUnder30 = false
@@ -10,6 +11,7 @@ struct RecipesView: View {
     @State private var filterFavorites = false
     @State private var filterLucena = false
     @State private var filterFilipino = false
+    @State private var showFilters = true
 
     private var filtered: [Recipe] {
         store.recipes.filter { r in
@@ -37,6 +39,12 @@ struct RecipesView: View {
 
     var body: some View {
         ScrollView {
+            GeometryReader { proxy in
+                Color.clear
+                    .preference(key: ScrollOffsetPreferenceKey.self, value: proxy.frame(in: .global).minY)
+            }
+            .frame(height: 0)
+
             VStack(alignment: .leading, spacing: 16) {
 
                 // Header
@@ -67,16 +75,44 @@ struct RecipesView: View {
                 .background(RoundedRectangle(cornerRadius: 16).fill(Theme.card))
                 .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
 
-                // Filters
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 10) {
-                        Chip("Under 30m", isOn: $filterUnder30)
-                        Chip("Veggie", isOn: $filterVeggie)
-                        Chip("Favorites", isOn: $filterFavorites)
-                        Chip("Lucena", isOn: $filterLucena)
-                        Chip("Filipino", isOn: $filterFilipino)
+                HStack {
+                    Button {
+                        withAnimation(.easeInOut) { showFilters.toggle() }
+                    } label: {
+                        Label(showFilters ? "Hide Filters" : "Show Filters", systemImage: "slider.horizontal.3")
+                            .font(.footnote)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(RoundedRectangle(cornerRadius: 14).fill(Theme.oliveSoft.opacity(0.5)))
                     }
-                    .padding(.vertical, 2)
+
+                    Spacer()
+
+                    Button {
+                        filterUnder30 = false
+                        filterVeggie = false
+                        filterFavorites = false
+                        filterLucena = false
+                        filterFilipino = false
+                    } label: {
+                        Text("Clear Filters")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.olive)
+                    }
+                }
+
+                if showFilters {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 10) {
+                            Chip("Under 30m", isOn: $filterUnder30)
+                            Chip("Veggie", isOn: $filterVeggie)
+                            Chip("Favorites", isOn: $filterFavorites)
+                            Chip("Lucena", isOn: $filterLucena)
+                            Chip("Filipino", isOn: $filterFilipino)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                    .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
                 // Recipe cards
@@ -102,5 +138,9 @@ struct RecipesView: View {
             .padding(.horizontal, 20)
         }
         .background(Theme.bg)
+        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { bottomBar.handleScroll(offset: $0) }
+        .onAppear { bottomBar.reset() }
+        .navigationTitle("Recipes")
+        .navigationBarTitleDisplayMode(.inline)
     }
 }

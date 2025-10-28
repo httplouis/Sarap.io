@@ -20,6 +20,8 @@ enum SampleData {
             StepItem(2, "Add shrimp; cook until pink."),
             StepItem(3, "Season, squeeze lemon, toss parsley; serve.")
         ]
+        r1.authorEmail = "community@sarap.io"
+        r1.authorName = "Community"
 
         var r2 = Recipe(title: "Chicken Adobo (One-Pan)", minutes: 45, servings: 4, cuisine: "Filipino", region: "Quezon")
         r2.imageName = "chicken-adobo"
@@ -43,6 +45,8 @@ enum SampleData {
             StepItem(4, "Stir in sugar; reduce to glossy sauce."),
             StepItem(5, "Rest 5m; serve with rice.")
         ]
+        r2.authorEmail = "community@sarap.io"
+        r2.authorName = "Community"
 
         var r3 = Recipe(title: "Veggie Stir-Fry", minutes: 25, servings: 2, cuisine: "Asian", region: "Lucena")
         r3.imageName = "veggie"
@@ -63,6 +67,8 @@ enum SampleData {
             StepItem(2, "Add garlic; toss (30s)."),
             StepItem(3, "Add sauces + slurry; thicken (1–2m).")
         ]
+        r3.authorEmail = "community@sarap.io"
+        r3.authorName = "Community"
 
         return [r1, r2, r3]
     }()

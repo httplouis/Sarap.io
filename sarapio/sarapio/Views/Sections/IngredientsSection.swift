@@ -6,14 +6,29 @@ struct IngredientsSection: View {
     var body: some View {
         Section("INGREDIENTS") {
             ForEach($ingredients) { $ing in
-                HStack {
+                VStack(alignment: .leading, spacing: 8) {
                     TextField("Ingredient", text: $ing.name)
-                    TextField("Amount", text: $ing.amount)
-                        .multilineTextAlignment(.trailing)
-                        .foregroundStyle(Theme.subtext)
-                    TextField("Unit", text: $ing.unit)
-                        .multilineTextAlignment(.trailing)
-                        .foregroundStyle(Theme.subtext)
+                        .textInputAutocapitalization(.words)
+                    HStack {
+                        TextField("Amount", text: $ing.amount)
+                            .multilineTextAlignment(.leading)
+                            .foregroundStyle(Theme.subtext)
+                        Spacer()
+                        Menu {
+                            ForEach(Ingredient.commonUnits, id: \.self) { unit in
+                                Button(unit.isEmpty ? "No unit" : unit) { ing.unit = unit }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "chevron.down.circle.fill")
+                                Text(ing.unit.isEmpty ? "Unit" : ing.unit)
+                            }
+                            .foregroundStyle(Theme.olive)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Theme.oliveSoft.opacity(0.6)))
+                        }
+                    }
                 }
                 .swipeActions {
                     Button(role: .destructive) {
@@ -28,7 +43,7 @@ struct IngredientsSection: View {
             }
 
             Button {
-                ingredients.append(Ingredient("New Ingredient"))
+                ingredients.append(Ingredient("", amount: "", unit: ""))
             } label: {
                 Label("Add Ingredient", systemImage: "plus")
             }

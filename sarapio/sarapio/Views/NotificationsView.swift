@@ -1,43 +1,68 @@
 import SwiftUI
 
 struct NotificationsView: View {
-    private let dummy = [
-        ("chef_ana", "liked your post 🍲", "2h"),
-        ("veggiequeen", "commented: 'Ang sarap nito! 😋'", "5h"),
-        ("foodieluke", "started following you", "1d")
+    @EnvironmentObject private var bottomBar: BottomBarState
+
+    private let notifications = [
+        ("Ana", "Ana liked your recipe.", "2h", "heart.fill"),
+        ("Miko", "Miko commented: “Grabe ang sarap nito!”", "5h", "text.bubble.fill"),
+        ("Veena", "Veena saved your Garlic Butter Shrimp.", "1d", "bookmark.fill"),
+        ("System", "We’re prepping live sync for Finals.", "2d", "bolt.horizontal.fill"),
+        ("Lara", "Lara started following you.", "3d", "person.crop.circle.badge.plus")
     ]
-    
+
     var body: some View {
         ScrollView {
+            GeometryReader { proxy in
+                Color.clear.preference(key: ScrollOffsetPreferenceKey.self, value: proxy.frame(in: .global).minY)
+            }
+            .frame(height: 0)
+
             LazyVStack(spacing: 16) {
-                ForEach(dummy, id: \.0) { n in
-                    HStack(spacing: 12) {
-                        Circle()
-                            .fill(Theme.olive)
-                            .frame(width: 44, height: 44)
-                            .overlay(Text(String(n.0.prefix(1)).uppercased())
-                                     .font(.headline)
-                                     .foregroundStyle(.white))
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("@\(n.0)")
-                                .font(.headline)
-                            Text(n.1)
-                                .foregroundStyle(Theme.text)
-                            Text(n.2)
-                                .font(.caption)
-                                .foregroundStyle(.gray)
-                        }
-                        Spacer()
-                    }
-                    .padding(12)
-                    .background(RoundedRectangle(cornerRadius: 16).fill(Theme.card))
-                    .shadow(color: .black.opacity(0.05), radius: 4, y: 3)
-                    .padding(.horizontal)
+                ForEach(Array(notifications.enumerated()), id: \.offset) { _, notification in
+                    NotificationRow(notification: notification)
+                        .padding(.horizontal, 20)
                 }
             }
-            .padding(.top)
+            .padding(.top, 20)
+            .padding(.bottom, 40)
         }
         .background(Theme.bg.ignoresSafeArea())
+        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { bottomBar.handleScroll(offset: $0) }
+        .navigationTitle("Notifications")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { bottomBar.reset() }
+    }
+}
+
+private struct NotificationRow: View {
+    var notification: (String, String, String, String)
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(Theme.oliveSoft)
+                    .frame(width: 52, height: 52)
+                Image(systemName: notification.3)
+                    .foregroundStyle(Theme.olive)
+            }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(notification.0)
+                    .font(.headline)
+                Text(notification.1)
+                    .font(.subheadline)
+                    .foregroundStyle(Theme.text)
+                Text(notification.2)
+                    .font(.caption)
+                    .foregroundStyle(Theme.subtext)
+            }
+            Spacer()
+        }
+        .padding(18)
+        .background(RoundedRectangle(cornerRadius: 22).fill(Theme.card))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Theme.border, lineWidth: 1))
+        .shadow(color: .black.opacity(0.05), radius: 6, y: 4)
     }
 }
