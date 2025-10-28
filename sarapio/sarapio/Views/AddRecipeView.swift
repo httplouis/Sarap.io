@@ -5,6 +5,7 @@ import UIKit
 struct AddRecipeView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var session: SessionManager
 
     var editing: Recipe?
 
@@ -20,8 +21,15 @@ struct AddRecipeView: View {
     @State private var pickerItem: PhotosPickerItem?
     @State private var pickedImageData: Data?
     @State private var pickedUIImage: UIImage?
+    @State private var showValidationError = false
+    @State private var validationMessage = ""
 
     private var existingImageData: Data? { editing?.imageData }
+
+    private var isFormValid: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        ingredients.contains { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
 
     init(editing: Recipe? = nil) {
         self.editing = editing
@@ -52,6 +60,7 @@ struct AddRecipeView: View {
 
             SaveSection(
                 editing: editing,
+                isDisabled: !isFormValid,
                 saveAction: save
             )
         }
@@ -64,6 +73,11 @@ struct AddRecipeView: View {
         .onChange(of: pickerItem) {
             Task { await loadPickedImage(from: pickerItem) }
         }
+        .alert("Validation", isPresented: $showValidationError, actions: {
+            Button("OK", role: .cancel) { }
+        }, message: {
+            Text(validationMessage)
+        })
     }
 
     // MARK: - Preview image
@@ -115,6 +129,12 @@ struct AddRecipeView: View {
     }
 
     private func save() {
+        guard isFormValid else {
+            validationMessage = "Please add a title and at least one ingredient."
+            showValidationError = true
+            return
+        }
+
         let mins = Int(minutes) ?? 0
         let serv = Int(servings) ?? 1
 
@@ -132,7 +152,10 @@ struct AddRecipeView: View {
             imageName: nil
         )
 
+        newRecipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+
         if let old = editing {
+            newRecipe.id = old.id
             store.update(old, with: newRecipe)
         } else {
             store.add(newRecipe)

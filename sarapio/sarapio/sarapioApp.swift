@@ -4,6 +4,8 @@ import SwiftUI
 @main
 struct SarapIOApp: App {
     @StateObject private var store = RecipeStore()
+    @StateObject private var session = SessionManager()
+    @StateObject private var feedStore = SocialFeedStore()
 
     init() {
         // Large title color
@@ -21,6 +23,8 @@ struct SarapIOApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(store)
+                .environmentObject(session)
+                .environmentObject(feedStore)
                 .tint(Theme.olive)
         }
     }

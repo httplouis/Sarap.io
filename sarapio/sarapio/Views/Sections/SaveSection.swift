@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SaveSection: View {
     var editing: Recipe?
+    var isDisabled: Bool
     var saveAction: () -> Void
 
     var body: some View {
@@ -14,6 +15,7 @@ struct SaveSection: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(Theme.olive)
+            .disabled(isDisabled)
             .listRowBackground(Theme.card)
         }
     }

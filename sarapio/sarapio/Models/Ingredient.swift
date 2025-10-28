@@ -6,6 +6,10 @@ struct Ingredient: Identifiable, Hashable {
     var amount: String   // numeric or text amount, e.g. "1", "2.5"
     var unit: String     // e.g. "pcs", "tsp", "tbsp", "g", "ml"
 
+    static let commonUnits: [String] = [
+        "", "g", "kg", "mg", "ml", "L", "cup", "tbsp", "tsp", "pcs", "cloves", "slices", "dash"
+    ]
+
     init(_ name: String, amount: String = "", unit: String = "") {
         self.name = name
         self.amount = amount
