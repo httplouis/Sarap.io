@@ -1,0 +1,2959 @@
+📦 MERGED SWIFT SOURCE FILES
+================================================================================
+
+// ===== FILE: Data/RecipeStore.swift =====
+
+import Foundation
+
+final class RecipeStore: ObservableObject {
+    @Published var recipes: [Recipe] = SampleData.recipes
+
+    func add(_ recipe: Recipe, regenerateIdentity: Bool = false) {
+        var draft = recipe
+        if regenerateIdentity { draft.regenerateIdentity() }
+        recipes.insert(draft, at: 0)
+    }
+
+    func delete(_ recipe: Recipe) {
+        recipes.removeAll { $0.id == recipe.id }
+    }
+
+    func toggleFavorite(_ recipe: Recipe) {
+        guard let index = recipes.firstIndex(where: { $0.id == recipe.id }) else { return }
+        recipes[index].isFavorite.toggle()
+    }
+
+    func update(_ recipe: Recipe, with updated: Recipe) {
+        guard let index = recipes.firstIndex(where: { $0.id == recipe.id }) else { return }
+        recipes[index] = updated
+    }
+
+    func recipes(for user: AppUser?) -> [Recipe] {
+        guard let user else { return recipes }
+        return recipes.filter { $0.authorEmail == user.email }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Data/SampleData.swift =====
+
+import Foundation
+
+enum SampleData {
+    static let recipes: [Recipe] = {
+        var r1 = Recipe(title: "Garlic Butter Shrimp", minutes: 20, servings: 3, cuisine: "Seafood", region: "Lucena")
+        r1.imageName = "shrimp"
+        r1.tags = ["Under 30m", "Quick", "One-Pan"]
+        r1.ingredients = [
+            Ingredient("Shrimp", amount: "500", unit: "g"),
+            Ingredient("Garlic", amount: "5", unit: "cloves"),
+            Ingredient("Butter", amount: "3", unit: "tbsp"),
+            Ingredient("Olive oil", amount: "1", unit: "tbsp"),
+            Ingredient("Lemon", amount: "1/2", unit: ""),
+            Ingredient("Parsley", amount: "1", unit: "tbsp"),
+            Ingredient("Salt"),
+            Ingredient("Black pepper")
+        ]
+        r1.steps = [
+            StepItem(1, "Melt butter with oil; sauté garlic until fragrant."),
+            StepItem(2, "Add shrimp; cook until pink."),
+            StepItem(3, "Season, squeeze lemon, toss parsley; serve.")
+        ]
+        r1.authorEmail = "community@sarap.io"
+        r1.authorName = "Community"
+
+        var r2 = Recipe(title: "Chicken Adobo (One-Pan)", minutes: 45, servings: 4, cuisine: "Filipino", region: "Quezon")
+        r2.imageName = "chicken-adobo"
+        r2.tags = ["Dinner", "One-Pan"]
+        r2.ingredients = [
+            Ingredient("Chicken thighs", amount: "800", unit: "g"),
+            Ingredient("Soy sauce", amount: "1/2", unit: "cup"),
+            Ingredient("Vinegar", amount: "1/3", unit: "cup"),
+            Ingredient("Water", amount: "1/2", unit: "cup"),
+            Ingredient("Garlic", amount: "6", unit: "cloves"),
+            Ingredient("Bay leaves", amount: "3", unit: "pcs"),
+            Ingredient("Peppercorns", amount: "1", unit: "tsp"),
+            Ingredient("Brown sugar", amount: "1", unit: "tbsp"),
+            Ingredient("Onion", amount: "1", unit: "pc"),
+            Ingredient("Oil", amount: "1", unit: "tbsp")
+        ]
+        r2.steps = [
+            StepItem(1, "Sauté onion & garlic in oil."),
+            StepItem(2, "Add chicken; sear both sides."),
+            StepItem(3, "Pour soy, vinegar, water; add bay & peppercorns; simmer 25–30m."),
+            StepItem(4, "Stir in sugar; reduce to glossy sauce."),
+            StepItem(5, "Rest 5m; serve with rice.")
+        ]
+        r2.authorEmail = "community@sarap.io"
+        r2.authorName = "Community"
+
+        var r3 = Recipe(title: "Veggie Stir-Fry", minutes: 25, servings: 2, cuisine: "Asian", region: "Lucena")
+        r3.imageName = "veggie"
+        r3.tags = ["Under 30m", "Veggie", "One-Pan"]
+        r3.ingredients = [
+            Ingredient("Broccoli", amount: "1", unit: "head"),
+            Ingredient("Carrot", amount: "1", unit: "pc"),
+            Ingredient("Bell pepper", amount: "1", unit: "pc"),
+            Ingredient("Mushrooms", amount: "150", unit: "g"),
+            Ingredient("Garlic", amount: "3", unit: "cloves"),
+            Ingredient("Soy sauce", amount: "2", unit: "tbsp"),
+            Ingredient("Oyster sauce", amount: "1", unit: "tbsp"),
+            Ingredient("Cornstarch", amount: "1", unit: "tsp (slurry)"),
+            Ingredient("Oil", amount: "1", unit: "tbsp")
+        ]
+        r3.steps = [
+            StepItem(1, "Stir-fry vegetables on high heat (5–6m)."),
+            StepItem(2, "Add garlic; toss (30s)."),
+            StepItem(3, "Add sauces + slurry; thicken (1–2m).")
+        ]
+        r3.authorEmail = "community@sarap.io"
+        r3.authorName = "Community"
+
+        return [r1, r2, r3]
+    }()
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Data/SessionManager.swift =====
+
+import Foundation
+import Combine
+import SwiftUI
+
+struct AppUser: Identifiable, Codable, Equatable {
+    let id: UUID
+    var name: String
+    var email: String
+    var avatarSeed: String
+    var followers: Int
+    var following: Int
+
+    init(id: UUID = UUID(), name: String, email: String, avatarSeed: String = "person.fill", followers: Int = 0, following: Int = 0) {
+        self.id = id
+        self.name = name
+        self.email = email
+        self.avatarSeed = avatarSeed
+        self.followers = followers
+        self.following = following
+    }
+}
+
+final class SessionManager: ObservableObject {
+    enum AuthError: LocalizedError {
+        case emptyFields
+        case passwordTooShort
+        case passwordMismatch
+        case emailAlreadyUsed
+        case invalidCredentials
+
+        var errorDescription: String? {
+            switch self {
+            case .emptyFields: return "Please fill in all fields."
+            case .passwordTooShort: return "Password should be at least 6 characters."
+            case .passwordMismatch: return "Passwords do not match."
+            case .emailAlreadyUsed: return "That email is already registered."
+            case .invalidCredentials: return "Email or password is incorrect."
+            }
+        }
+    }
+
+    @Published private(set) var currentUser: AppUser?
+    @Published var rememberMe: Bool = false
+    @Published private(set) var storedUsers: [String: StoredCredentials] = [:]
+
+    private let rememberedKey = "sarapio.rememberedUser"
+    private let usersKey = "sarapio.savedUsers"
+
+    struct StoredCredentials: Codable {
+        var user: AppUser
+        var password: String
+    }
+
+    init() {
+        loadStoredUsers()
+        seedDemoAccountIfNeeded()
+        autoLoginIfAvailable()
+    }
+
+    func signup(name: String, email: String, password: String, confirmPassword: String, remember: Bool) throws {
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedConfirm = confirmPassword.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedName.isEmpty, !trimmedEmail.isEmpty, !trimmedPassword.isEmpty, !trimmedConfirm.isEmpty else {
+            throw AuthError.emptyFields
+        }
+        guard trimmedPassword.count >= 6 else { throw AuthError.passwordTooShort }
+        guard trimmedPassword == trimmedConfirm else { throw AuthError.passwordMismatch }
+        guard storedUsers[trimmedEmail] == nil else { throw AuthError.emailAlreadyUsed }
+
+        let avatars = ["person.fill", "fork.knife", "flame.fill", "leaf.fill", "fish.fill"]
+        let user = AppUser(name: trimmedName, email: trimmedEmail,
+                           avatarSeed: avatars.randomElement() ?? "person.fill",
+                           followers: Int.random(in: 20...150),
+                           following: Int.random(in: 10...120))
+        let credentials = StoredCredentials(user: user, password: trimmedPassword)
+        storedUsers[trimmedEmail] = credentials
+        persistUsers()
+        currentUser = user
+        rememberMe = remember
+        persistRememberedUser(remember ? credentials : nil)
+    }
+
+    func login(email: String, password: String, remember: Bool) throws {
+        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedEmail.isEmpty, !trimmedPassword.isEmpty else { throw AuthError.emptyFields }
+        guard let credentials = storedUsers[trimmedEmail], credentials.password == trimmedPassword else {
+            throw AuthError.invalidCredentials
+        }
+        currentUser = credentials.user
+        rememberMe = remember
+        persistRememberedUser(remember ? credentials : nil)
+    }
+
+    func logout() {
+        currentUser = nil
+        rememberMe = false
+        persistRememberedUser(nil)
+    }
+
+    private func loadStoredUsers() {
+        guard let data = UserDefaults.standard.data(forKey: usersKey) else { return }
+        if let decoded = try? JSONDecoder().decode([String: StoredCredentials].self, from: data) {
+            storedUsers = decoded
+        }
+    }
+
+    private func persistUsers() {
+        if let data = try? JSONEncoder().encode(storedUsers) {
+            UserDefaults.standard.set(data, forKey: usersKey)
+        }
+    }
+
+    private func seedDemoAccountIfNeeded() {
+        if storedUsers.isEmpty {
+            let demo = AppUser(name: "Chef Demo", email: "demo@sarap.io", avatarSeed: "fork.knife", followers: 248, following: 132)
+            storedUsers[demo.email] = StoredCredentials(user: demo, password: "password")
+            persistUsers()
+        }
+    }
+
+    private func autoLoginIfAvailable() {
+        guard let data = UserDefaults.standard.data(forKey: rememberedKey),
+              let stored = try? JSONDecoder().decode(StoredCredentials.self, from: data) else { return }
+        storedUsers[stored.user.email] = storedUsers[stored.user.email] ?? stored
+        currentUser = stored.user
+        rememberMe = true
+    }
+
+    private func persistRememberedUser(_ credentials: StoredCredentials?) {
+        if let credentials {
+            if let data = try? JSONEncoder().encode(credentials) {
+                UserDefaults.standard.set(data, forKey: rememberedKey)
+            }
+        } else {
+            UserDefaults.standard.removeObject(forKey: rememberedKey)
+        }
+    }
+
+    func updateProfile(name: String) {
+        guard var user = currentUser else { return }
+        user.name = name
+        currentUser = user
+        if var credentials = storedUsers[user.email] {
+            credentials.user = user
+            storedUsers[user.email] = credentials
+            persistUsers()
+            if rememberMe { persistRememberedUser(credentials) }
+        }
+    }
+
+    func updateAvatar(seed: String) {
+        guard var user = currentUser else { return }
+        user.avatarSeed = seed
+        currentUser = user
+        if var credentials = storedUsers[user.email] {
+            credentials.user = user
+            storedUsers[user.email] = credentials
+            persistUsers()
+            if rememberMe { persistRememberedUser(credentials) }
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Data/SocialFeedStore.swift =====
+
+import Foundation
+
+final class SocialFeedStore: ObservableObject {
+    @Published var posts: [SocialPost] = SocialSampleData.posts
+
+    func toggleLike(for post: SocialPost) {
+        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
+        posts[index].isLiked.toggle()
+        posts[index].likes = max(0, posts[index].likes + (posts[index].isLiked ? 1 : -1))
+    }
+
+    func toggleSave(for post: SocialPost) {
+        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
+        posts[index].isSaved.toggle()
+    }
+
+    func setRating(_ rating: Int, for post: SocialPost) {
+        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
+        posts[index].userRating = rating
+    }
+
+    func append(_ post: SocialPost) {
+        posts.insert(post, at: 0)
+    }
+
+    func addComment(_ comment: String, to post: SocialPost) {
+        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
+        posts[index].comments.append(comment)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Data/SocialSampleData.swift =====
+
+import Foundation
+
+enum SocialSampleData {
+    static let posts: [SocialPost] = [
+        SocialPost(
+            id: UUID(),
+            user: "moris123",
+            avatar: "moris", // asset image in Assets.xcassets
+            caption: "Easy and garlicky shrimp 🦐🔥 perfect for dinner!",
+            recipe: SampleData.recipes[0], // Garlic Butter Shrimp
+            likes: 32,
+            comments: [
+                "Sarap nito ah, pwede pang ulam bukas 👌",
+                "Grabe, I tried this and super dali lang gawin 😋",
+                "Mas masarap pag may kanin! 🍚"
+            ],
+            rating: 4
+        ),
+        SocialPost(
+            id: UUID(),
+            user: "chef_ana",
+            avatar: "ana", // asset image in Assets.xcassets
+            caption: "Classic adobo recipe from Quezon 🇵🇭",
+            recipe: SampleData.recipes[1], // Chicken Adobo
+            likes: 50,
+            comments: [
+                "Solid! walang tatalo sa adobo 🔥",
+                "Favorite ng pamilya ko ‘to, swear!",
+                "Best with extra rice, agree? 😂"
+            ],
+            rating: 5
+        ),
+        SocialPost(
+            id: UUID(),
+            user: "veggiequeen",
+            avatar: "veggie", // asset image in Assets.xcassets
+            caption: "Healthy stir-fry — quick lunch idea 🥦🥕",
+            recipe: SampleData.recipes[2], // Veggie Stir-Fry
+            likes: 18,
+            comments: [
+                "Pwede ko lagyan ng tofu para mas busog 😍",
+                "Super colorful plate! ang ganda tignan 😮",
+                "Masarap ‘to with konting sesame oil 👌"
+            ],
+            rating: 3
+        )
+    ]
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Data/Theme.swift =====
+
+import SwiftUI
+
+enum Theme {
+    // Palette
+    static let bg        = Color(hex: "#F3F1EC")     // warm beige background
+    static let card      = Color(hex: "#FFFFFF")
+    static let olive     = Color(hex: "#556B2F")     // primary
+    static let oliveDark = Color(hex: "#3F521F")
+    static let oliveSoft = Color(hex: "#DDE4CF")     // chips fill
+    static let text      = Color(hex: "#23231F")
+    static let subtext   = Color.black.opacity(0.45)
+    static let border    = Color.black.opacity(0.08)
+
+    // Typography
+    static func titleXL() -> Font { .system(size: 34, weight: .bold, design: .rounded) }
+    static func titleM()  -> Font { .system(size: 20, weight: .semibold, design: .rounded) }
+    static func body()    -> Font { .system(size: 16, weight: .regular, design: .rounded) }
+    static func label()   -> Font { .system(size: 13, weight: .medium, design: .rounded) }
+}
+
+extension Color {
+    init(hex: String) {
+        let v = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0; Scanner(string: v).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch v.count { case 3: (a,r,g,b)=(255,(int>>8)*17,(int>>4&0xF)*17,(int&0xF)*17)
+                         case 6: (a,r,g,b)=(255,int>>16,int>>8&0xFF,int&0xFF)
+                         case 8: (a,r,g,b)=(int>>24,int>>16&0xFF,int>>8&0xFF,int&0xFF)
+                         default:(a,r,g,b)=(255,0,0,0) }
+        self.init(.sRGB, red: Double(r)/255, green: Double(g)/255, blue: Double(b)/255, opacity: Double(a)/255)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Models/Ingredient.swift =====
+
+import Foundation
+
+struct Ingredient: Identifiable, Hashable {
+    var id = UUID()
+    var name: String
+    var amount: String   // numeric or text amount, e.g. "1", "2.5"
+    var unit: String     // e.g. "pcs", "tsp", "tbsp", "g", "ml"
+
+    static let commonUnits: [String] = [
+        "", "g", "kg", "mg", "ml", "L", "cup", "tbsp", "tsp", "pcs", "cloves", "slices", "dash"
+    ]
+
+    init(_ name: String, amount: String = "", unit: String = "") {
+        self.name = name
+        self.amount = amount
+        self.unit = unit
+    }
+
+    var display: String {
+        if !amount.isEmpty && !unit.isEmpty {
+            return "\(amount) \(unit) \(name)"
+        } else if !amount.isEmpty {
+            return "\(amount) \(name)"
+        } else {
+            return name
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Models/Recipe.swift =====
+
+import Foundation
+import SwiftUI
+
+struct Recipe: Identifiable, Equatable, Hashable {
+    var id = UUID()
+
+    var title: String
+    var minutes: Int
+    var servings: Int
+    var cuisine: String?
+    var region: String?
+
+    var tags: [String] = []
+    var ingredients: [Ingredient] = []
+    var steps: [StepItem] = []
+    var isFavorite: Bool = false
+
+    // Ownership
+    var authorEmail: String?
+    var authorName: String?
+
+    // Images
+    var imageData: Data? = nil
+    var assetName: String? = nil
+    var imageName: String? = nil
+
+    mutating func assignAuthor(email: String?, name: String?) {
+        authorEmail = email
+        authorName = name
+    }
+
+    mutating func regenerateIdentity() {
+        id = UUID()
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Models/SocialPost.swift =====
+
+import Foundation
+
+struct SocialPost: Identifiable {
+    let id: UUID
+    let user: String
+    let avatar: String?
+    let caption: String
+    var recipe: Recipe
+    var likes: Int
+    var comments: [String]
+    var rating: Int
+    var isLiked: Bool = false
+    var isSaved: Bool = false
+    var userRating: Int = 0
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Models/StepItem.swift =====
+
+import Foundation
+
+struct StepItem: Identifiable, Equatable, Hashable {
+    let id = UUID()
+    var order: Int
+    var text: String
+
+    init(_ order: Int, _ text: String) {
+        self.order = order
+        self.text = text
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Utils/BottomBarState.swift =====
+
+import Foundation
+import SwiftUI
+
+final class BottomBarState: ObservableObject {
+    @Published var isHidden: Bool = false
+    private var lastOffset: CGFloat = 0
+    private var initialized = false
+
+    func handleScroll(offset: CGFloat) {
+        if !initialized {
+            lastOffset = offset
+            initialized = true
+            return
+        }
+        let delta = offset - lastOffset
+        guard abs(delta) > 8 else { return }
+        if delta < 0 {
+            hide()
+        } else {
+            show()
+        }
+        lastOffset = offset
+    }
+
+    func reset() {
+        initialized = false
+    }
+
+    func hide() {
+        withAnimation(.easeInOut(duration: 0.25)) { isHidden = true }
+    }
+
+    func show() {
+        withAnimation(.easeInOut(duration: 0.25)) { isHidden = false }
+    }
+}
+
+struct ScrollOffsetPreferenceKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Utils/ImageResolver.swift =====
+
+import SwiftUI
+
+extension Recipe {
+    func resolvedImage() -> Image? {
+        if let data = imageData, let ui = UIImage(data: data) {
+            return Image(uiImage: ui)
+        }
+        if let name = assetName, let ui = UIImage(named: name) {
+            return Image(uiImage: ui)
+        }
+        return nil
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Utils/RecipeNarrator.swift =====
+
+import AVFoundation
+import Foundation
+
+final class RecipeNarrator: NSObject, ObservableObject, AVSpeechSynthesizerDelegate {
+    private let synthesizer = AVSpeechSynthesizer()
+    @Published private(set) var isSpeaking = false
+
+    override init() {
+        super.init()
+        synthesizer.delegate = self
+    }
+
+    func speak(_ text: String, rate: Float = 0.47) {
+        stop()
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.rate = rate
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-PH")
+        synthesizer.speak(utterance)
+    }
+
+    func append(_ text: String, rate: Float = 0.47) {
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.rate = rate
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-PH")
+        synthesizer.speak(utterance)
+    }
+
+    func stop() {
+        if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        isSpeaking = true
+    }
+
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        if !synthesizer.isSpeaking { isSpeaking = false }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/AddHubView.swift =====
+
+import SwiftUI
+
+struct AddHubView: View {
+    @State private var showAddRecipe = false
+    @State private var showAddPost = false
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                HeroCard(
+                    title: "Add a Recipe",
+                    subtitle: "Share your kitchen masterpiece",
+                    icon: "fork.knife"
+                ) {
+                    showAddRecipe = true
+                }
+
+                HeroCard(
+                    title: "Create a Post",
+                    subtitle: "Tell the community what you're cooking",
+                    icon: "sparkles"
+                ) {
+                    showAddPost = true
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Tips for Finals")
+                        .font(Theme.titleM())
+                    Text("We prepared the flow so you can hook it up to Supabase, Firebase, or SwiftData later. Every action already has placeholders for API calls.")
+                        .font(Theme.body())
+                        .foregroundStyle(Theme.subtext)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding()
+                .background(RoundedRectangle(cornerRadius: 22).fill(Theme.card))
+                .overlay(RoundedRectangle(cornerRadius: 22).stroke(Theme.border, lineWidth: 1))
+                .shadow(color: .black.opacity(0.06), radius: 8, y: 6)
+            }
+            .padding(24)
+            .safeAreaPadding(.top) // ✅ prevents overlap with navigation bar
+        }
+        .background(Theme.bg)
+        .navigationTitle("Create")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Theme.bg, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .sheet(isPresented: $showAddRecipe) {
+            NavigationStack { AddRecipeView() }
+        }
+        .sheet(isPresented: $showAddPost) {
+            AddSocialPostViewWrapper()
+        }
+    }
+}
+
+// MARK: - Hero Card
+private struct HeroCard: View {
+    var title: String
+    var subtitle: String
+    var icon: String
+    var action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 18) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.oliveSoft.opacity(0.6))
+                        .frame(width: 64, height: 64)
+                    Image(systemName: icon)
+                        .font(.system(size: 28, weight: .bold))
+                        .foregroundStyle(Theme.olive)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(title)
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundStyle(Theme.text)
+                    Text(subtitle)
+                        .font(.system(size: 15, weight: .regular, design: .rounded))
+                        .foregroundStyle(Theme.subtext)
+                }
+
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(Theme.subtext)
+            }
+            .padding(22)
+            .background(RoundedRectangle(cornerRadius: 26).fill(Theme.card))
+            .overlay(RoundedRectangle(cornerRadius: 26).stroke(Theme.border, lineWidth: 1))
+            .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Add Post Wrapper
+private struct AddSocialPostViewWrapper: View {
+    @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var session: SessionManager
+    @EnvironmentObject private var feedStore: SocialFeedStore
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        AddSocialPostView { post in
+            var recipe = post.recipe
+            recipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+            store.add(recipe, regenerateIdentity: true)
+            var updatedPost = post
+            updatedPost.recipe = recipe
+            feedStore.append(updatedPost)
+        } onDismiss: {
+            dismiss()
+        }
+        .environmentObject(store)
+        .environmentObject(session)
+        .environmentObject(feedStore)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/AddRecipeView.swift =====
+
+import SwiftUI
+import PhotosUI
+import UIKit
+
+struct AddRecipeView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var session: SessionManager
+
+    var editing: Recipe?
+
+    @State private var title: String = ""
+    @State private var minutes: String = ""
+    @State private var servings: String = ""
+    @State private var cuisine: String = ""
+    @State private var region: String = ""
+
+    @State private var ingredients: [Ingredient] = []
+    @State private var steps: [StepItem] = []
+
+    @State private var pickerItem: PhotosPickerItem?
+    @State private var pickedImageData: Data?
+    @State private var pickedUIImage: UIImage?
+    @State private var showValidationError = false
+    @State private var validationMessage = ""
+
+    private var existingImageData: Data? { editing?.imageData }
+
+    private var isFormValid: Bool {
+        !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        ingredients.contains { !$0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+    }
+
+    init(editing: Recipe? = nil) {
+        self.editing = editing
+    }
+
+    var body: some View {
+        Form {
+            PhotoSection(
+                pickerItem: $pickerItem,
+                previewImage: { AnyView(previewImage) }   // closure returning AnyView
+            )
+
+
+            BasicInfoSection(
+                title: $title,
+                minutes: $minutes,
+                servings: $servings,
+                cuisine: $cuisine,
+                region: $region
+            )
+
+            IngredientsSection(ingredients: $ingredients)
+
+            StepsSection(
+                steps: $steps,
+                reindexSteps: reindexSteps
+            )
+
+            SaveSection(
+                editing: editing,
+                isDisabled: !isFormValid,
+                saveAction: save
+            )
+        }
+        .scrollContentBackground(.hidden)
+        .background(Theme.bg)
+        .tint(Theme.olive)
+        .navigationTitle(editing == nil ? "Add Recipe" : "Edit Recipe")
+        .toolbar { EditButton() }
+        .onAppear(perform: loadEditingIfAny)
+        .onChange(of: pickerItem) {
+            Task { await loadPickedImage(from: pickerItem) }
+        }
+        .alert("Validation", isPresented: $showValidationError, actions: {
+            Button("OK", role: .cancel) { }
+        }, message: {
+            Text(validationMessage)
+        })
+    }
+
+    // MARK: - Preview image
+    @ViewBuilder
+    private var previewImage: some View {
+        if let ui = pickedUIImage {
+            Image(uiImage: ui).resizable().scaledToFill()
+        } else if let data = existingImageData, let ui = UIImage(data: data) {
+            Image(uiImage: ui).resizable().scaledToFill()
+        } else {
+            ZStack {
+                Theme.card
+                Image(systemName: "leaf")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundStyle(Theme.olive)
+            }
+        }
+    }
+
+    // MARK: - PhotosPicker loader
+    private func loadPickedImage(from item: PhotosPickerItem?) async {
+        guard let item else { return }
+        do {
+            if let data = try await item.loadTransferable(type: Data.self) {
+                self.pickedImageData = data
+                self.pickedUIImage = UIImage(data: data)
+            }
+        } catch {
+            print("PhotosPicker load failed:", error.localizedDescription)
+            self.pickedImageData = nil
+            self.pickedUIImage = nil
+        }
+    }
+
+    // MARK: - Helpers
+    private func reindexSteps() {
+        for i in 0..<steps.count { steps[i].order = i + 1 }
+    }
+
+    private func loadEditingIfAny() {
+        guard let r = editing else { return }
+        title = r.title
+        minutes = String(r.minutes)
+        servings = String(r.servings)
+        cuisine = r.cuisine ?? ""
+        region = r.region ?? ""
+        ingredients = r.ingredients
+        steps = r.steps
+    }
+
+    private func save() {
+        guard isFormValid else {
+            validationMessage = "Please add a title and at least one ingredient."
+            showValidationError = true
+            return
+        }
+
+        let mins = Int(minutes) ?? 0
+        let serv = Int(servings) ?? 1
+
+        var newRecipe = Recipe(
+            title: title.isEmpty ? "Untitled" : title,
+            minutes: mins,
+            servings: serv,
+            cuisine: cuisine.isEmpty ? nil : cuisine,
+            region: region.isEmpty ? nil : region,
+            tags: [],
+            ingredients: ingredients,
+            steps: steps,
+            isFavorite: editing?.isFavorite ?? false,
+            imageData: pickedImageData ?? editing?.imageData,
+            imageName: nil
+        )
+
+        newRecipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+
+        if let old = editing {
+            newRecipe.id = old.id
+            store.update(old, with: newRecipe)
+        } else {
+            store.add(newRecipe)
+        }
+        dismiss()
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/AddSocialPostView.swift =====
+
+import SwiftUI
+
+struct AddSocialPostView: View {
+    @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var session: SessionManager
+
+    @State private var caption: String = ""
+    @State private var selectedRecipe: Recipe?
+
+    var onSave: (SocialPost) -> Void
+    var onDismiss: (() -> Void)? = nil
+
+    private var currentUserHandle: String {
+        if let email = session.currentUser?.email,
+           let handle = email.split(separator: "@").first {
+            return "@" + handle.lowercased()
+        }
+        return "@guest"
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    HStack(spacing: 12) {
+                        Circle()
+                            .fill(Theme.oliveSoft)
+                            .frame(width: 54, height: 54)
+                            .overlay(Image(systemName: "person.fill").foregroundStyle(Theme.olive))
+                        VStack(alignment: .leading) {
+                            Text(session.currentUser?.name ?? "Guest Cook")
+                                .font(.headline)
+                            Text(currentUserHandle)
+                                .font(.subheadline)
+                                .foregroundStyle(Theme.subtext)
+                        }
+                        Spacer()
+                    }
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Caption")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.subtext)
+                        TextEditor(text: $caption)
+                            .frame(minHeight: 140)
+                            .padding(12)
+                            .background(RoundedRectangle(cornerRadius: 18).fill(Theme.card))
+                            .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.border, lineWidth: 1))
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Attach a Recipe")
+                            .font(.subheadline)
+                            .foregroundStyle(Theme.subtext)
+                        Menu {
+                            Button("No recipe") { selectedRecipe = nil }
+                            ForEach(store.recipes(for: session.currentUser)) { recipe in
+                                Button(recipe.title) { selectedRecipe = recipe }
+                            }
+                        } label: {
+                            HStack {
+                                Text(selectedRecipe?.title ?? "Choose from your recipes")
+                                    .foregroundStyle(Theme.text)
+                                Spacer()
+                                Image(systemName: "chevron.down")
+                                    .foregroundStyle(Theme.subtext)
+                            }
+                            .padding()
+                            .background(RoundedRectangle(cornerRadius: 16).fill(Theme.card))
+                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+                        }
+                    }
+
+                    Text("Comments and shares will be available after Finals once the realtime database is wired up.")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.subtext)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 16).fill(Theme.bg))
+                }
+                .padding(24)
+            }
+            .background(Theme.bg.ignoresSafeArea())
+            .navigationTitle("New Post")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                        onDismiss?()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Share") {
+                        let recipe = selectedRecipe ?? SampleData.recipes.randomElement() ?? Recipe(title: "Untitled", minutes: 0, servings: 0, cuisine: nil, region: nil)
+                        var authoredRecipe = recipe
+                        authoredRecipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+                        let handle = session.currentUser?.email.split(separator: "@").first.map(String.init) ?? "guest"
+                        var post = SocialPost(
+                            id: UUID(),
+                            user: handle,
+                            avatar: nil,
+                            caption: caption,
+                            recipe: authoredRecipe,
+                            likes: Int.random(in: 2...20),
+                            comments: ["🔥 Can't wait to try this!"],
+                            rating: 0
+                        )
+                        post.userRating = 0
+                        onSave(post)
+                        dismiss()
+                        onDismiss?()
+                    }
+                    .disabled(caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/AuthFlowView.swift =====
+
+import SwiftUI
+import UIKit
+
+struct AuthFlowView: View {
+    enum Mode: String, CaseIterable { case login = "Log In", signup = "Sign Up" }
+    @State private var mode: Mode = .login
+
+    var body: some View {
+        VStack(spacing: 24) {
+            Spacer(minLength: 40)
+            VStack(spacing: 10) {
+                Text("Sarap.io")
+                    .font(.system(size: 44, weight: .heavy, design: .rounded))
+                    .foregroundStyle(Theme.olive)
+                Text("Cook, share, and discover recipes from the community.")
+                    .font(.system(size: 16, weight: .medium, design: .rounded))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Theme.subtext)
+                    .padding(.horizontal, 32)
+            }
+
+            Picker("Mode", selection: $mode) {
+                ForEach(Mode.allCases, id: \.self) { value in
+                    Text(value.rawValue).tag(value)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 32)
+
+            Group {
+                switch mode {
+                case .login:
+                    LoginForm()
+                case .signup:
+                    SignupForm(onSignedUp: { mode = .login })
+                }
+            }
+            .padding(.horizontal, 24)
+
+            Spacer()
+        }
+        .background(Theme.bg.ignoresSafeArea())
+    }
+}
+
+private struct LoginForm: View {
+    @EnvironmentObject private var session: SessionManager
+    @State private var email = ""
+    @State private var password = ""
+    @State private var rememberMe = true
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: 18) {
+            AuthTextField(icon: "envelope.fill", placeholder: "Email", text: $email, keyboard: .emailAddress)
+            AuthSecureField(icon: "lock.fill", placeholder: "Password", text: $password)
+
+            Toggle(isOn: $rememberMe) {
+                Text("Remember Me / Auto Login")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.subtext)
+            }
+            .toggleStyle(SwitchToggleStyle(tint: Theme.olive))
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Button {
+                errorMessage = nil
+                do {
+                    try session.login(email: email, password: password, remember: rememberMe)
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
+            } label: {
+                Text("Log In")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(RoundedRectangle(cornerRadius: 16).fill(Theme.olive))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.15), radius: 10, y: 6)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(24)
+        .background(RoundedRectangle(cornerRadius: 28).fill(Theme.card))
+        .overlay(RoundedRectangle(cornerRadius: 28).stroke(Theme.border, lineWidth: 1))
+        .shadow(color: .black.opacity(0.06), radius: 10, y: 8)
+    }
+}
+
+private struct SignupForm: View {
+    @EnvironmentObject private var session: SessionManager
+    @State private var name = ""
+    @State private var email = ""
+    @State private var password = ""
+    @State private var confirmPassword = ""
+    @State private var rememberMe = true
+    var onSignedUp: () -> Void
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: 18) {
+            AuthTextField(icon: "person.fill", placeholder: "Full Name", text: $name, keyboard: .default, capitalization: .words)
+            AuthTextField(icon: "envelope.fill", placeholder: "Email", text: $email, keyboard: .emailAddress)
+            AuthSecureField(icon: "lock.fill", placeholder: "Password", text: $password)
+            AuthSecureField(icon: "lock.rotation", placeholder: "Confirm Password", text: $confirmPassword)
+
+            Toggle(isOn: $rememberMe) {
+                Text("Remember Me / Auto Login")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.subtext)
+            }
+            .toggleStyle(SwitchToggleStyle(tint: Theme.olive))
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Button {
+                errorMessage = nil
+                do {
+                    try session.signup(name: name, email: email, password: password, confirmPassword: confirmPassword, remember: rememberMe)
+                    onSignedUp()
+                } catch {
+                    errorMessage = error.localizedDescription
+                }
+            } label: {
+                Text("Create Account")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(RoundedRectangle(cornerRadius: 16).fill(Theme.olive))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.15), radius: 10, y: 6)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(24)
+        .background(RoundedRectangle(cornerRadius: 28).fill(Theme.card))
+        .overlay(RoundedRectangle(cornerRadius: 28).stroke(Theme.border, lineWidth: 1))
+        .shadow(color: .black.opacity(0.06), radius: 10, y: 8)
+    }
+}
+
+private struct AuthTextField: View {
+    var icon: String
+    var placeholder: String
+    @Binding var text: String
+    var keyboard: UIKeyboardType
+    var capitalization: TextInputAutocapitalization = .never  // ✅ fixed here
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundStyle(Theme.olive)
+            TextField(placeholder, text: $text)
+                .keyboardType(keyboard)
+                .textInputAutocapitalization(capitalization)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Theme.bg))
+    }
+}
+
+private struct AuthSecureField: View {
+    var icon: String
+    var placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundStyle(Theme.olive)
+            SecureField(placeholder, text: $text)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Theme.bg))
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/Components/Chip.swift =====
+
+// Views/Components/Chip.swift
+import SwiftUI
+
+struct Chip: View {
+    var title: String
+    @Binding var isOn: Bool
+    init(_ title: String, isOn: Binding<Bool>) { self.title = title; _isOn = isOn }
+
+    var body: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.15)) { isOn.toggle() }
+        } label: {
+            Text(title)
+                .font(Theme.label())
+                .foregroundStyle(isOn ? .white : Theme.text)
+                .padding(.horizontal, 14).padding(.vertical, 8)
+                .background(
+                    Capsule().fill(isOn ? Theme.olive : Theme.oliveSoft)
+                )
+                .overlay(
+                    Capsule().stroke(Theme.olive.opacity(isOn ? 0 : 0.4), lineWidth: 1)
+                )
+        }.buttonStyle(.plain)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/Components/Tag.swift =====
+
+import SwiftUI
+struct Tag: View {
+    var text: String
+    var body: some View {
+        Text(text)
+            .font(Theme.label())
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(Capsule().fill(Theme.oliveSoft.opacity(0.6)))
+            .foregroundStyle(Theme.oliveDark)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/ContentView.swift =====
+
+import SwiftUI
+
+struct ContentView: View {
+    @EnvironmentObject private var session: SessionManager
+
+    var body: some View {
+        Group {
+            if session.currentUser != nil {
+                HomeTabView()
+            } else {
+                AuthFlowView()
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: session.currentUser != nil)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/HomeTabView.swift =====
+
+import SwiftUI
+
+struct HomeTabView: View {
+    @State private var selectedTab: Tab = .recipes
+    @StateObject private var bottomBarState = BottomBarState()
+
+    @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var session: SessionManager
+    @EnvironmentObject private var feedStore: SocialFeedStore
+
+    enum Tab: Int, CaseIterable {
+        case recipes
+        case feed
+        case add
+        case notifications
+        case messages
+        case profile
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            TabView(selection: $selectedTab) {
+                NavigationStack {
+                    RecipesView()
+                        .navigationTitle("Recipes")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbarBackground(Theme.bg, for: .navigationBar)
+                        .toolbarBackground(.visible, for: .navigationBar)
+                }
+                .tag(Tab.recipes)
+
+                NavigationStack {
+                    SocialFeedView()
+                        .navigationTitle("Feed")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbarBackground(Theme.bg, for: .navigationBar)
+                        .toolbarBackground(.visible, for: .navigationBar)
+                }
+                .tag(Tab.feed)
+
+                NavigationStack {
+                    AddHubView()
+                        .navigationTitle("Add")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbarBackground(Theme.bg, for: .navigationBar)
+                        .toolbarBackground(.visible, for: .navigationBar)
+                }
+                .tag(Tab.add)
+
+                NavigationStack {
+                    NotificationsView()
+                        .navigationTitle("Alerts")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbarBackground(Theme.bg, for: .navigationBar)
+                        .toolbarBackground(.visible, for: .navigationBar)
+                }
+                .tag(Tab.notifications)
+
+                NavigationStack {
+                    MessagesView()
+                        .navigationTitle("Messages")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbarBackground(Theme.bg, for: .navigationBar)
+                        .toolbarBackground(.visible, for: .navigationBar)
+                }
+                .tag(Tab.messages)
+
+                NavigationStack {
+                    ProfileView()
+                        .navigationTitle("Profile")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbarBackground(Theme.bg, for: .navigationBar)
+                        .toolbarBackground(.visible, for: .navigationBar)
+                }
+                .tag(Tab.profile)
+            }
+            .environmentObject(bottomBarState)
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .tint(Theme.olive)
+
+            BottomNavigationBar(selectedTab: $selectedTab, isHidden: bottomBarState.isHidden)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
+        }
+        .onChange(of: selectedTab) { _ in
+            bottomBarState.show()
+            bottomBarState.reset()
+        }
+        .background(Theme.bg.ignoresSafeArea())
+    }
+}
+
+// MARK: - Bottom Navigation Bar
+private struct BottomNavigationBar: View {
+    @Binding var selectedTab: HomeTabView.Tab
+    var isHidden: Bool
+
+    var body: some View {
+        HStack(spacing: 0) {
+            TabButton(icon: "book.fill", title: "Recipes", tab: .recipes, selectedTab: $selectedTab)
+            Spacer(minLength: 12)
+            TabButton(icon: "sparkles.rectangle.stack", title: "Feed", tab: .feed, selectedTab: $selectedTab)
+            Spacer(minLength: 12)
+            AddTabButton(tab: .add, selectedTab: $selectedTab)
+            Spacer(minLength: 12)
+            TabButton(icon: "bell.badge.fill", title: "Alerts", tab: .notifications, selectedTab: $selectedTab)
+            Spacer(minLength: 12)
+            TabButton(icon: "bubble.left.and.bubble.right.fill", title: "Messages", tab: .messages, selectedTab: $selectedTab)
+            Spacer(minLength: 12)
+            TabButton(icon: "person.crop.circle.fill", title: "Profile", tab: .profile, selectedTab: $selectedTab)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
+        .offset(y: isHidden ? 120 : 0)
+        .animation(.easeInOut(duration: 0.25), value: isHidden)
+    }
+}
+
+// MARK: - Tab Button
+private struct TabButton: View {
+    var icon: String
+    var title: String
+    var tab: HomeTabView.Tab
+    @Binding var selectedTab: HomeTabView.Tab
+
+    var body: some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(selectedTab == tab ? Theme.olive : Theme.subtext)
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(selectedTab == tab ? Theme.olive : Theme.subtext)
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Add Button
+private struct AddTabButton: View {
+    var tab: HomeTabView.Tab
+    @Binding var selectedTab: HomeTabView.Tab
+
+    var body: some View {
+        Button {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { selectedTab = tab }
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Theme.olive)
+                    .frame(width: 64, height: 64)
+                    .shadow(color: .black.opacity(0.16), radius: 10, y: 8)
+                Image(systemName: "plus")
+                    .font(.system(size: 28, weight: .heavy))
+                    .foregroundStyle(.white)
+            }
+        }
+        .offset(y: -18)
+        .buttonStyle(.plain)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/MessagesView.swift =====
+
+import SwiftUI
+
+struct MessagesView: View {
+    struct Conversation: Identifiable {
+        let id = UUID()
+        var partner: String
+        var preview: String
+        var messages: [ChatMessage]
+    }
+
+    struct ChatMessage: Identifiable {
+        let id = UUID()
+        let text: String
+        let isMe: Bool
+        let time: String
+    }
+
+    @EnvironmentObject private var bottomBar: BottomBarState
+
+    @State private var conversations: [Conversation] = [
+        Conversation(partner: "Ana", preview: "Loved your shrimp recipe!", messages: [
+            ChatMessage(text: "Hey! I loved your Shrimp recipe 🍤", isMe: false, time: "7:42 PM"),
+            ChatMessage(text: "Thanks! It’s my go-to weeknight dish.", isMe: true, time: "7:45 PM"),
+            ChatMessage(text: "Can you send me the steps?", isMe: false, time: "7:46 PM")
+        ]),
+        Conversation(partner: "Miko", preview: "Game for collab post?", messages: [
+            ChatMessage(text: "Game for a collab post this weekend?", isMe: false, time: "3:12 PM"),
+            ChatMessage(text: "Sure! Let’s plan a halo-halo recipe. 😄", isMe: true, time: "3:14 PM")
+        ])
+    ]
+
+    @State private var selectedConversationIndex: Int = 0
+    @State private var inputText = ""
+
+    private var selectedConversation: Conversation {
+        conversations[selectedConversationIndex]
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+            Divider()
+            conversationPicker
+            Divider()
+            chatLog
+            messageComposer
+        }
+        .background(Theme.bg.ignoresSafeArea())
+        .onAppear { bottomBar.reset() }
+        .navigationTitle("Messages")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var header: some View {
+        HStack {
+            VStack(alignment: .leading) {
+                Text("Messages")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                Text("Real-time chat coming Finals week!")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.subtext)
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 16)
+    }
+
+    private var conversationPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 12) {
+                ForEach(Array(conversations.enumerated()), id: \.offset) { index, conversation in
+                    Button {
+                        withAnimation(.easeInOut) { selectedConversationIndex = index }
+                    } label: {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(conversation.partner)
+                                .font(.headline)
+                                .foregroundStyle(selectedConversationIndex == index ? .white : Theme.text)
+                            Text(conversation.preview)
+                                .font(.caption)
+                                .foregroundStyle(selectedConversationIndex == index ? .white.opacity(0.8) : Theme.subtext)
+                                .lineLimit(1)
+                        }
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 18)
+                                .fill(selectedConversationIndex == index ? Theme.olive : Theme.card)
+                                .shadow(color: .black.opacity(0.05), radius: 5, y: 3)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 12)
+        }
+    }
+
+    private var chatLog: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                GeometryReader { proxyGeo in
+                    Color.clear.preference(key: ScrollOffsetPreferenceKey.self, value: proxyGeo.frame(in: .global).minY)
+                }
+                .frame(height: 0)
+
+                LazyVStack(spacing: 12) {
+                    ForEach(selectedConversation.messages) { message in
+                        HStack {
+                            if message.isMe { Spacer() }
+                            VStack(alignment: message.isMe ? .trailing : .leading, spacing: 6) {
+                                Text(message.text)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .background(RoundedRectangle(cornerRadius: 18).fill(message.isMe ? Theme.olive : Theme.card))
+                                    .foregroundStyle(message.isMe ? .white : Theme.text)
+                                Text(message.time)
+                                    .font(.caption2)
+                                    .foregroundStyle(Theme.subtext)
+                            }
+                            if !message.isMe { Spacer() }
+                        }
+                        .transition(.opacity)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 20)
+            }
+            .onChange(of: selectedConversationIndex) { _ in
+                if let last = selectedConversation.messages.last {
+                    withAnimation(.easeInOut) {
+                        proxy.scrollTo(last.id, anchor: .bottom)
+                    }
+                }
+            }
+        }
+        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { bottomBar.handleScroll(offset: $0) }
+    }
+
+    private var messageComposer: some View {
+        HStack(spacing: 12) {
+            TextField("Message…", text: $inputText)
+                .padding(14)
+                .background(RoundedRectangle(cornerRadius: 18).fill(Theme.card))
+            Button {
+                let trimmed = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                let message = ChatMessage(text: trimmed, isMe: true, time: "Now")
+                conversations[selectedConversationIndex].messages.append(message)
+                conversations[selectedConversationIndex].preview = trimmed
+                inputText = ""
+            } label: {
+                Image(systemName: "paperplane.fill")
+                    .font(.title3)
+                    .foregroundStyle(Theme.olive)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+        .background(Theme.bg)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/NotificationsView.swift =====
+
+import SwiftUI
+
+struct NotificationsView: View {
+    @EnvironmentObject private var bottomBar: BottomBarState
+
+    private let notifications = [
+        ("Ana", "Ana liked your recipe.", "2h", "heart.fill"),
+        ("Miko", "Miko commented: “Grabe ang sarap nito!”", "5h", "text.bubble.fill"),
+        ("Veena", "Veena saved your Garlic Butter Shrimp.", "1d", "bookmark.fill"),
+        ("System", "We’re prepping live sync for Finals.", "2d", "bolt.horizontal.fill"),
+        ("Lara", "Lara started following you.", "3d", "person.crop.circle.badge.plus")
+    ]
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                GeometryReader { proxy in
+                    Color.clear.preference(key: ScrollOffsetPreferenceKey.self, value: proxy.frame(in: .global).minY)
+                }
+                .frame(height: 0)
+
+                LazyVStack(spacing: 16) {
+                    ForEach(Array(notifications.enumerated()), id: \.offset) { _, notification in
+                        NotificationRow(notification: notification)
+                            .padding(.horizontal, 20)
+                    }
+                }
+                .padding(.top, 20)
+                .padding(.bottom, 40)
+            }
+            .background(Theme.bg)
+            .navigationTitle("Notifications")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(Theme.bg, for: .navigationBar)
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { bottomBar.handleScroll(offset: $0) }
+            .onAppear { bottomBar.reset() }
+        }
+        .safeAreaInset(edge: .top) { Color.clear.frame(height: 0) }
+    }
+}
+
+private struct NotificationRow: View {
+    var notification: (String, String, String, String)
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(Theme.oliveSoft).frame(width: 52, height: 52)
+                Image(systemName: notification.3).foregroundStyle(Theme.olive)
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(notification.0).font(.headline)
+                Text(notification.1).font(.subheadline).foregroundStyle(Theme.text)
+                Text(notification.2).font(.caption).foregroundStyle(Theme.subtext)
+            }
+            Spacer()
+        }
+        .padding(18)
+        .background(RoundedRectangle(cornerRadius: 22).fill(Theme.card))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Theme.border, lineWidth: 1))
+        .shadow(color: .black.opacity(0.05), radius: 6, y: 4)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/ProfileView.swift =====
+
+import SwiftUI
+
+struct ProfileView: View {
+    @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var session: SessionManager
+    @EnvironmentObject private var bottomBar: BottomBarState
+
+    @State private var editedName: String = ""
+    @State private var isEditingName = false
+    @State private var selectedAvatar: String = "person.fill"
+
+    private let avatarChoices = ["person.fill", "fork.knife", "flame.fill", "leaf.fill", "fish.fill", "cup.and.saucer.fill"]
+
+    private var myRecipes: [Recipe] {
+        store.recipes(for: session.currentUser)
+    }
+
+    var body: some View {
+        ScrollView {
+            GeometryReader { proxy in
+                Color.clear.preference(key: ScrollOffsetPreferenceKey.self, value: proxy.frame(in: .global).minY)
+            }
+            .frame(height: 0)
+
+            VStack(alignment: .leading, spacing: 24) {
+                profileHeader
+                statsRow
+                favoritesSection
+                myRecipesSection
+                logoutButton
+            }
+            .padding(24)
+        }
+        .background(Theme.bg.ignoresSafeArea())
+        .navigationTitle("Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            editedName = session.currentUser?.name ?? ""
+            selectedAvatar = session.currentUser?.avatarSeed ?? "person.fill"
+            bottomBar.reset()
+        }
+        .onPreferenceChange(ScrollOffsetPreferenceKey.self) { bottomBar.handleScroll(offset: $0) }
+    }
+
+    private var profileHeader: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 20) {
+                ZStack {
+                    Circle()
+                        .fill(Theme.oliveSoft.opacity(0.6))
+                        .frame(width: 92, height: 92)
+                    Image(systemName: selectedAvatar)
+                        .font(.system(size: 42))
+                        .foregroundStyle(Theme.olive)
+                }
+                VStack(alignment: .leading, spacing: 8) {
+                    if isEditingName {
+                        TextField("Display name", text: $editedName)
+                            .textInputAutocapitalization(.words)
+                            .textFieldStyle(.roundedBorder)
+                        HStack {
+                            Button("Save") {
+                                session.updateProfile(name: editedName)
+                                isEditingName = false
+                            }
+                            Button("Cancel") { cancelEditing() }
+                        }
+                        .font(.footnote)
+                    } else {
+                        Text(session.currentUser?.name ?? "Guest")
+                            .font(.system(size: 26, weight: .semibold, design: .rounded))
+                        Button("Edit Name") {
+                            editedName = session.currentUser?.name ?? ""
+                            isEditingName = true
+                        }
+                        .font(.footnote)
+                        .foregroundStyle(Theme.olive)
+                    }
+
+                    Menu("Change Avatar") {
+                        ForEach(avatarChoices, id: \.self) { symbol in
+                            Button {
+                                selectedAvatar = symbol
+                                session.updateAvatar(seed: symbol)
+                            } label: {
+                                Label(symbol, systemImage: symbol)
+                            }
+                        }
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(Theme.olive)
+                }
+                Spacer()
+            }
+        }
+        .background(RoundedRectangle(cornerRadius: 24).fill(Theme.card))
+        .overlay(RoundedRectangle(cornerRadius: 24).stroke(Theme.border, lineWidth: 1))
+        .shadow(color: .black.opacity(0.05), radius: 8, y: 6)
+        .padding(.top, 12)
+    }
+
+    private var statsRow: some View {
+        HStack(spacing: 24) {
+            StatTile(title: "Recipes", value: "\(myRecipes.count)")
+            StatTile(title: "Followers", value: "\(session.currentUser?.followers ?? 0)")
+            StatTile(title: "Following", value: "\(session.currentUser?.following ?? 0)")
+        }
+    }
+
+    private var favoritesSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Favorites")
+                .font(Theme.titleM())
+            if myRecipes.filter({ $0.isFavorite }).isEmpty {
+                Text("Mark recipes as favorites to pin them here.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.subtext)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 16) {
+                        ForEach(myRecipes.filter { $0.isFavorite }) { recipe in
+                            FavoriteCard(recipe: recipe)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+        }
+    }
+
+    private var myRecipesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("My Recipes")
+                .font(Theme.titleM())
+            if myRecipes.isEmpty {
+                Text("Add your first recipe to show it off here!")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.subtext)
+            } else {
+                ForEach(myRecipes) { recipe in
+                    NavigationLink { RecipeDetailView(recipe: recipe) } label: {
+                        RecipeRow(recipe: recipe)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private var logoutButton: some View {
+        Button {
+            session.logout()
+        } label: {
+            Text("Log Out")
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(RoundedRectangle(cornerRadius: 18).fill(Color.red.opacity(0.85)))
+                .foregroundStyle(.white)
+        }
+        .padding(.top, 30)
+    }
+
+    private func cancelEditing() {
+        editedName = session.currentUser?.name ?? ""
+        isEditingName = false
+    }
+}
+
+private struct StatTile: View {
+    var title: String
+    var value: String
+
+    var body: some View {
+        VStack(spacing: 6) {
+            Text(value)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+            Text(title)
+                .font(.footnote)
+                .foregroundStyle(Theme.subtext)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(16)
+        .background(RoundedRectangle(cornerRadius: 18).fill(Theme.card))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.border, lineWidth: 1))
+    }
+}
+
+private struct FavoriteCard: View {
+    var recipe: Recipe
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if let imgName = recipe.imageName {
+                Image(imgName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 140, height: 96)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+            }
+            Text(recipe.title)
+                .font(.footnote)
+                .foregroundStyle(Theme.text)
+        }
+        .frame(width: 140)
+        .background(RoundedRectangle(cornerRadius: 18).fill(Theme.card))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(Theme.border, lineWidth: 1))
+        .shadow(color: .black.opacity(0.06), radius: 6, y: 4)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/RecipeDetailView.swift =====
+
+import SwiftUI
+import AVFoundation
+
+struct RecipeDetailView: View {
+    @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var session: SessionManager
+    @Environment(\.dismiss) private var dismiss   // ✅ para makabalik after delete
+    @State private var showImageFull = false
+    @State private var showDeleteConfirm = false
+    @State private var showEdit = false
+    @StateObject private var narrator = RecipeNarrator()
+    @State private var currentStepIndex = 0
+
+    let recipe: Recipe
+
+    var body: some View {
+        List {
+            headerImage
+
+            Section {
+                HStack(spacing: 8) {
+                    Tag(text: "\(recipe.minutes)m")
+                    Tag(text: "Serves \(recipe.servings)")
+                    if let c = recipe.cuisine { Tag(text: c) }
+                }
+                if let region = recipe.region, !region.isEmpty {
+                    Text("Region: \(region)")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.subtext)
+                }
+            }
+
+            Section("INGREDIENTS") {
+                ForEach(recipe.ingredients) { ing in
+                    HStack {
+                        Text(ing.display) // ✅ computed property for qty + name
+                        Spacer()
+                    }
+                }
+            }
+
+            Section("STEPS") {
+                let sortedSteps = recipe.steps.sorted { $0.order < $1.order }
+                ForEach(sortedSteps) { st in
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("\(st.order).")
+                            .monospacedDigit()
+                            .foregroundStyle(Theme.subtext)
+                        Text(st.text)
+                    }
+                }
+            }
+
+            Section("VOICE") {
+                Button {
+                    speakIngredients()
+                } label: {
+                    Label("Speak Ingredients", systemImage: "speaker.wave.2.fill")
+                }
+
+                Button {
+                    startStepNarration()
+                } label: {
+                    Label("Speak Steps", systemImage: "list.number")
+                }
+
+                Button {
+                    speakNextStep()
+                } label: {
+                    Label("Next Step", systemImage: "arrowtriangle.forward.fill")
+                }
+                .disabled(recipe.steps.isEmpty)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(Theme.bg)
+        .navigationTitle(recipe.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button { showEdit = true } label: {
+                    Image(systemName: "square.and.pencil")
+                }
+                Button(role: .destructive) { showDeleteConfirm = true } label: {
+                    Image(systemName: "trash")
+                }
+                Button { store.toggleFavorite(recipe) } label: {
+                    Image(systemName: recipe.isFavorite ? "heart.fill" : "heart")
+                }
+            }
+        }
+        .confirmationDialog("Delete this recipe?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                store.delete(recipe)
+                dismiss()   // ✅ balik agad sa home/list
+            }
+            Button("Cancel", role: .cancel) {}
+        }
+        .sheet(isPresented: $showEdit) {
+            NavigationStack { AddRecipeView(editing: recipe) }
+                .environmentObject(store)
+                .environmentObject(session)
+                .presentationDetents([.large])
+        }
+        .fullScreenCover(isPresented: $showImageFull) {
+            if let img = recipe.resolvedImage() {
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    img.resizable()
+                        .scaledToFit()
+                        .onTapGesture { showImageFull = false }
+                }
+            }
+        }
+        .onDisappear { narrator.stop() }
+    }
+
+    @ViewBuilder
+    private var headerImage: some View {
+        if let imgName = recipe.imageName {
+            Image(imgName)
+                .resizable()
+                .scaledToFill()
+                .frame(height: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+                .onTapGesture { showImageFull = true }
+        } else {
+            EmptyView()
+        }
+    }
+
+    private func speakIngredients() {
+        let lines = recipe.ingredients.map { $0.display }.joined(separator: ". ")
+        narrator.speak("Ingredients: " + lines)
+    }
+
+    private func startStepNarration() {
+        currentStepIndex = 0
+        guard !recipe.steps.isEmpty else { return }
+        let sorted = recipe.steps.sorted { $0.order < $1.order }
+        narrator.speak("Let's cook \(recipe.title).")
+        narrator.append("Step 1: " + sorted[0].text)
+    }
+
+    private func speakNextStep() {
+        let sorted = recipe.steps.sorted { $0.order < $1.order }
+        guard !sorted.isEmpty else { return }
+        if currentStepIndex < sorted.count - 1 {
+            currentStepIndex += 1
+            let stepNumber = sorted[currentStepIndex].order
+            narrator.speak("Step \(stepNumber): " + sorted[currentStepIndex].text)
+        } else {
+            narrator.speak("That's the last step. Enjoy your meal!")
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/RecipeRow.swift =====
+
+// RecipeRow.swift
+import SwiftUI
+import UIKit
+
+struct RecipeRow: View {
+    let recipe: Recipe
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Recipe Image
+            if let imgName = recipe.imageName {
+                Image(imgName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+            } else if let data = recipe.imageData, let ui = UIImage(data: data) {
+                Image(uiImage: ui)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+            } else {
+                ZStack {
+                    Theme.card
+                    Image(systemName: "leaf")
+                        .font(.system(size: 30, weight: .semibold))
+                        .foregroundStyle(Theme.olive)
+                }
+                .frame(height: 200)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+            }
+
+            // Title + Info
+            VStack(alignment: .leading, spacing: 6) {
+                Text(recipe.title)
+                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                    .foregroundStyle(Theme.text)
+                    .lineLimit(2)
+
+                Text("\(recipe.minutes)m • \(recipe.ingredients.count) ingredients")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.subtext)
+            }
+
+            // Favorite + Chevron
+            HStack {
+                if recipe.isFavorite {
+                    Image(systemName: "heart.fill")
+                        .foregroundStyle(.pink)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(Theme.subtext)
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Theme.card)
+                .shadow(color: .black.opacity(0.06), radius: 10, y: 6)
+                .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.border, lineWidth: 1))
+        )
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/RecipesView.swift =====
+
+import SwiftUI
+
+struct RecipesView: View {
+    @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var bottomBar: BottomBarState
+
+    @State private var searchText = ""
+    @State private var filterUnder30 = false
+    @State private var filterVeggie = false
+    @State private var filterFavorites = false
+    @State private var filterLucena = false
+    @State private var filterFilipino = false
+    @State private var showFilters = true
+
+    private var filtered: [Recipe] {
+        store.recipes.filter { r in
+            let q = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+            let hitsText = q.isEmpty ||
+                r.title.localizedCaseInsensitiveContains(q) ||
+                (r.cuisine ?? "").localizedCaseInsensitiveContains(q) ||
+                (r.region ?? "").localizedCaseInsensitiveContains(q) ||
+                r.ingredients.contains { $0.name.localizedCaseInsensitiveContains(q) }
+
+            let meats = ["beef", "pork", "chicken", "shrimp", "fish", "tuna", "salmon", "lamb"]
+            let isVeggie = !r.ingredients.map { $0.name.lowercased() }
+                .contains { s in meats.contains { s.contains($0) } }
+
+            let hitsUnder = !filterUnder30 || r.minutes <= 30
+            let hitsVeg   = !filterVeggie || isVeggie
+            let hitsFav   = !filterFavorites || r.isFavorite
+            let hitsLuc   = !filterLucena || (r.region?.localizedCaseInsensitiveContains("Lucena") ?? false)
+            let hitsFil   = !filterFilipino || (r.cuisine?.localizedCaseInsensitiveContains("Filipino") ?? false)
+
+            return hitsText && hitsUnder && hitsVeg && hitsFav && hitsLuc && hitsFil
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                GeometryReader { proxy in
+                    Color.clear
+                        .preference(
+                            key: ScrollOffsetPreferenceKey.self,
+                            value: proxy.frame(in: .global).minY
+                        )
+                }
+                .frame(height: 0)
+
+                VStack(alignment: .leading, spacing: 16) {
+                    header
+                    searchBar
+                    filterSection
+                    recipeList
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 24)
+                .safeAreaPadding(.top) // ✅ ensures spacing under nav bar
+            }
+            .background(Theme.bg)
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { bottomBar.handleScroll(offset: $0) }
+            .onAppear { bottomBar.reset() }
+            .navigationTitle("Recipes")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Theme.bg, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+        }
+    }
+
+    // MARK: - Header
+    private var header: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text("Sarap.io")
+                .font(Theme.titleXL())
+                .foregroundStyle(Theme.text)
+            Spacer()
+            NavigationLink { AddRecipeView() } label: {
+                Text("Add a recipe")
+                    .font(.system(size: 16, weight: .semibold))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 8)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Theme.olive))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.1), radius: 6, y: 3)
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    // MARK: - Search Bar
+    private var searchBar: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(Theme.subtext)
+            TextField("Search recipes or ingredients", text: $searchText)
+                .textInputAutocapitalization(.never)
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 16).fill(Theme.card))
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Theme.border, lineWidth: 1))
+    }
+
+    // MARK: - Filters
+    private var filterSection: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Button {
+                    withAnimation(.easeInOut) { showFilters.toggle() }
+                } label: {
+                    Label(showFilters ? "Hide Filters" : "Show Filters", systemImage: "slider.horizontal.3")
+                        .font(.footnote)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 8)
+                        .background(RoundedRectangle(cornerRadius: 14).fill(Theme.oliveSoft.opacity(0.5)))
+                }
+
+                Spacer()
+
+                Button {
+                    filterUnder30 = false
+                    filterVeggie = false
+                    filterFavorites = false
+                    filterLucena = false
+                    filterFilipino = false
+                } label: {
+                    Text("Clear Filters")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.olive)
+                }
+            }
+
+            if showFilters {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 10) {
+                        Chip("Under 30m", isOn: $filterUnder30)
+                        Chip("Veggie", isOn: $filterVeggie)
+                        Chip("Favorites", isOn: $filterFavorites)
+                        Chip("Lucena", isOn: $filterLucena)
+                        Chip("Filipino", isOn: $filterFilipino)
+                    }
+                    .padding(.vertical, 2)
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+    }
+
+    // MARK: - Recipe List
+    private var recipeList: some View {
+        VStack(spacing: 14) {
+            ForEach(filtered) { r in
+                NavigationLink { RecipeDetailView(recipe: r) } label: {
+                    RecipeRow(recipe: r)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .contextMenu {
+                    Button(role: .destructive) { store.delete(r) } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    Button { store.toggleFavorite(r) } label: {
+                        Label(
+                            r.isFavorite ? "Unfavorite" : "Favorite",
+                            systemImage: r.isFavorite ? "heart.slash" : "heart"
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/Sections/BasicInfoSection.swift =====
+
+import SwiftUI
+
+struct BasicInfoSection: View {
+    @Binding var title: String
+    @Binding var minutes: String
+    @Binding var servings: String
+    @Binding var cuisine: String
+    @Binding var region: String
+
+    var body: some View {
+        Section("BASIC") {
+            TextField("Title", text: $title)
+
+            HStack {
+                TextField("Minutes", text: $minutes).keyboardType(.numberPad)
+                TextField("Servings", text: $servings).keyboardType(.numberPad)
+            }
+
+            TextField("Cuisine (optional)", text: $cuisine)
+            TextField("Region (optional)", text: $region)
+        }
+        .listRowBackground(Theme.card)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/Sections/IngredientsSection.swift =====
+
+import SwiftUI
+
+struct IngredientsSection: View {
+    @Binding var ingredients: [Ingredient]
+
+    var body: some View {
+        Section("INGREDIENTS") {
+            ForEach($ingredients) { $ing in
+                VStack(alignment: .leading, spacing: 8) {
+                    TextField("Ingredient", text: $ing.name)
+                        .textInputAutocapitalization(.words)
+                    HStack {
+                        TextField("Amount", text: $ing.amount)
+                            .multilineTextAlignment(.leading)
+                            .foregroundStyle(Theme.subtext)
+                        Spacer()
+                        Menu {
+                            ForEach(Ingredient.commonUnits, id: \.self) { unit in
+                                Button(unit.isEmpty ? "No unit" : unit) { ing.unit = unit }
+                            }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "chevron.down.circle.fill")
+                                Text(ing.unit.isEmpty ? "Unit" : ing.unit)
+                            }
+                            .foregroundStyle(Theme.olive)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 8)
+                            .background(RoundedRectangle(cornerRadius: 10).fill(Theme.oliveSoft.opacity(0.6)))
+                        }
+                    }
+                }
+                .swipeActions {
+                    Button(role: .destructive) {
+                        if let idx = ingredients.firstIndex(where: { $0.id == ing.id }) {
+                            ingredients.remove(at: idx)
+                        }
+                    } label: { Label("Delete", systemImage: "trash") }
+                }
+            }
+            .onDelete { indices in
+                ingredients.remove(atOffsets: indices)
+            }
+
+            Button {
+                ingredients.append(Ingredient("", amount: "", unit: ""))
+            } label: {
+                Label("Add Ingredient", systemImage: "plus")
+            }
+        }
+        .listRowBackground(Theme.card)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/Sections/PhotoSection.swift =====
+
+import SwiftUI
+import PhotosUI
+
+struct PhotoSection: View {
+    @Binding var pickerItem: PhotosPickerItem?
+    var previewImage: () -> AnyView   
+
+    var body: some View {
+        Section("PHOTO") {
+            HStack(spacing: 16) {
+                previewImage()   // call closure
+                    .frame(width: 84, height: 84)
+                    .background(Theme.card)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
+
+                PhotosPicker(selection: $pickerItem, matching: .images, photoLibrary: .shared()) {
+                    Label("Choose Photo", systemImage: "photo.on.rectangle")
+                        .font(.body)
+                        .foregroundStyle(Theme.olive)
+                }
+            }
+            .listRowBackground(Theme.card)
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/Sections/SaveSection.swift =====
+
+import SwiftUI
+
+struct SaveSection: View {
+    var editing: Recipe?
+    var isDisabled: Bool
+    var saveAction: () -> Void
+
+    var body: some View {
+        Section {
+            Button(action: saveAction) {
+                Text(editing == nil ? "Save Recipe" : "Update Recipe")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Theme.olive)
+            .disabled(isDisabled)
+            .listRowBackground(Theme.card)
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/Sections/StepsSection.swift =====
+
+import SwiftUI
+
+struct StepsSection: View {
+    @Binding var steps: [StepItem]
+    var reindexSteps: () -> Void
+
+    var body: some View {
+        Section(header: Text("STEPS")) {
+            ForEach($steps) { $st in
+                HStack(alignment: .firstTextBaseline) {
+                    Text("\(st.order).")
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.subtext)
+
+                    TextField("", text: $st.text)
+                        .placeholder(when: st.text.isEmpty) {
+                            Text("Step description").foregroundColor(.gray)
+                        }
+                }
+                .swipeActions {
+                    Button(role: .destructive) {
+                        if let idx = steps.firstIndex(where: { $0.id == st.id }) {
+                            steps.remove(at: idx)
+                            reindexSteps()
+                        }
+                    } label: { Label("Delete", systemImage: "trash") }
+                }
+            }
+            .onDelete {
+                steps.remove(atOffsets: $0)
+                reindexSteps()
+            }
+
+            Button {
+                // 👇 no labels, just values
+                steps.append(StepItem((steps.last?.order ?? 0) + 1, ""))
+            } label: {
+                Label("Add Step", systemImage: "plus")
+            }
+        }
+        .listRowBackground(Theme.card)
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/SocialFeedView.swift =====
+
+import SwiftUI
+import UIKit
+
+struct SocialFeedView: View {
+    @EnvironmentObject private var feedStore: SocialFeedStore
+    @EnvironmentObject private var store: RecipeStore
+    @EnvironmentObject private var session: SessionManager
+    @EnvironmentObject private var bottomBar: BottomBarState
+
+    @State private var commentDrafts: [UUID: String] = [:]
+    @State private var showMessages = false
+    @State private var showAddPost = false
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                GeometryReader { proxy in
+                    Color.clear
+                        .preference(key: ScrollOffsetPreferenceKey.self, value: proxy.frame(in: .global).minY)
+                }
+                .frame(height: 0)
+
+                LazyVStack(spacing: 24) {
+                    ForEach(feedStore.posts) { post in
+                        SocialPostCard(
+                            post: post,
+                            commentText: binding(for: post),
+                            onLike: { feedStore.toggleLike(for: post) },
+                            onSave: { feedStore.toggleSave(for: post) },
+                            onCopy: { copyToMyRecipes(post.recipe) },
+                            onRate: { feedStore.setRating($0, for: post) },
+                            onComment: { text in
+                                feedStore.addComment(text, to: post)
+                                commentDrafts[post.id] = ""
+                            },
+                            onShare: {}
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 32)
+            }
+            .background(Theme.bg)
+            .navigationTitle("Feed")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarBackground(Theme.bg, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button { showAddPost = true } label: {
+                        Image(systemName: "plus")
+                            .font(.title2)
+                            .foregroundStyle(Theme.olive)
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showMessages = true } label: {
+                        Image(systemName: "paperplane.fill")
+                            .font(.title2)
+                            .foregroundStyle(Theme.olive)
+                    }
+                }
+            }
+            .onPreferenceChange(ScrollOffsetPreferenceKey.self) { bottomBar.handleScroll(offset: $0) }
+            .sheet(isPresented: $showMessages) { NavigationStack { MessagesView() } }
+            .sheet(isPresented: $showAddPost) {
+                AddSocialPostView { post in
+                    var updated = post
+                    updated.recipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+                    feedStore.append(updated)
+                }
+                .environmentObject(store)
+                .environmentObject(session)
+            }
+            .onAppear { bottomBar.reset() }
+        }
+        .safeAreaInset(edge: .top) { Color.clear.frame(height: 0) }
+    }
+
+    private func binding(for post: SocialPost) -> Binding<String> {
+        Binding {
+            commentDrafts[post.id] ?? ""
+        } set: { newValue in
+            commentDrafts[post.id] = newValue
+        }
+    }
+
+    private func copyToMyRecipes(_ recipe: Recipe) {
+        var duplicate = recipe
+        duplicate.regenerateIdentity()
+        duplicate.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+        store.add(duplicate)
+    }
+}
+
+// MARK: - Social Post Card
+private struct SocialPostCard: View {
+    var post: SocialPost
+    @Binding var commentText: String
+    var onLike: () -> Void
+    var onSave: () -> Void
+    var onCopy: () -> Void
+    var onRate: (Int) -> Void
+    var onComment: (String) -> Void
+    var onShare: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            header
+            media
+            actions
+            likesAndCaption
+            commentsPreview
+            rateAndCopy
+            commentComposer
+        }
+        .padding(20)
+        .background(RoundedRectangle(cornerRadius: 22).fill(Theme.card))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(Theme.border, lineWidth: 1))
+        .shadow(color: .black.opacity(0.08), radius: 8, y: 5)
+    }
+
+    private var header: some View {
+        HStack(spacing: 12) {
+            Circle()
+                .fill(Theme.oliveSoft)
+                .frame(width: 44, height: 44)
+                .overlay(Text(String(post.user.prefix(1)).uppercased()).font(.headline))
+            VStack(alignment: .leading, spacing: 2) {
+                Text("@\(post.user)")
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                Text("Posted 2h ago")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.subtext)
+            }
+            Spacer()
+            Button { onShare() } label: {
+                Image(systemName: "square.and.arrow.up")
+                    .foregroundStyle(Theme.subtext)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var media: some View {
+        if let imgName = post.recipe.imageName {
+            Image(imgName)
+                .resizable()
+                .scaledToFill()
+                .frame(maxHeight: 260)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .clipped()
+        } else if let data = post.recipe.imageData, let ui = UIImage(data: data) {
+            Image(uiImage: ui)
+                .resizable()
+                .scaledToFill()
+                .frame(maxHeight: 260)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .clipped()
+        }
+    }
+
+    private var actions: some View {
+        HStack(spacing: 24) {
+            Button(action: onLike) {
+                Image(systemName: post.isLiked ? "heart.fill" : "heart")
+                    .font(.title3)
+                    .foregroundStyle(post.isLiked ? .red : Theme.subtext)
+            }
+            Button(action: {}) {
+                Image(systemName: "bubble.right")
+                    .font(.title3)
+                    .foregroundStyle(Theme.subtext)
+            }
+            Button(action: onShare) {
+                Image(systemName: "paperplane")
+                    .font(.title3)
+                    .foregroundStyle(Theme.subtext)
+            }
+            Spacer()
+            Button(action: onSave) {
+                Image(systemName: post.isSaved ? "bookmark.fill" : "bookmark")
+                    .font(.title3)
+                    .foregroundStyle(post.isSaved ? Theme.olive : Theme.subtext)
+            }
+        }
+    }
+
+    private var likesAndCaption: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text("\(post.likes) likes")
+                .font(.subheadline)
+                .fontWeight(.semibold)
+            Text(post.caption)
+                .font(.body)
+        }
+    }
+
+    private var commentsPreview: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            ForEach(post.comments.prefix(2), id: \.self) { comment in
+                Text("💬 \(comment)")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.subtext)
+            }
+        }
+    }
+
+    private var rateAndCopy: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            RatingControl(currentRating: post.rating, userRating: post.userRating, onSelect: onRate)
+            HStack {
+                Button(action: onCopy) {
+                    Label("Copy to My Recipes", systemImage: "tray.and.arrow.down")
+                }
+                Spacer()
+                Button(action: onShare) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+                .tint(Theme.olive)
+            }
+            .font(.footnote)
+            .foregroundStyle(Theme.olive)
+        }
+    }
+
+    private var commentComposer: some View {
+        HStack(spacing: 12) {
+            TextField("Add a comment…", text: $commentText)
+                .textFieldStyle(.roundedBorder)
+            Button {
+                let trimmed = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !trimmed.isEmpty else { return }
+                onComment(trimmed)
+            } label: {
+                Text("Send")
+                    .font(.caption)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Theme.olive))
+                    .foregroundStyle(.white)
+            }
+        }
+    }
+}
+
+// MARK: - Rating Control
+private struct RatingControl: View {
+    var currentRating: Int
+    var userRating: Int
+    var onSelect: (Int) -> Void
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Text("Rate this recipe:")
+                .font(.footnote)
+                .foregroundStyle(Theme.subtext)
+            ForEach(1...5, id: \.self) { star in
+                let isFilled = star <= (userRating == 0 ? currentRating : userRating)
+                Image(systemName: isFilled ? "star.fill" : "star")
+                    .foregroundStyle(isFilled ? Theme.olive : Theme.subtext)
+                    .onTapGesture { onSelect(star) }
+            }
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/Untitled.swift =====
+
+//
+//  Untitled.swift
+//  sarapio
+//
+//  Created by STUDENT on 10/7/25.
+//
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: Views/View+Placeholder.swift =====
+
+// File: Extensions/View+Placeholder.swift
+import SwiftUI
+
+extension View {
+    func placeholder<Content: View>(
+        when shouldShow: Bool,
+        alignment: Alignment = .leading,
+        @ViewBuilder placeholder: () -> Content
+    ) -> some View {
+        ZStack(alignment: alignment) {
+            if shouldShow { placeholder() }
+            self
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: sarapioApp.swift =====
+
+import SwiftUI
+
+@main
+struct SarapIOApp: App {
+    @StateObject private var store = RecipeStore()
+    @StateObject private var session = SessionManager()
+    @StateObject private var feedStore = SocialFeedStore()
+
+    init() {
+        // Configure UINavigationBar appearance the SwiftUI-safe way
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithOpaqueBackground()
+        appearance.backgroundColor = UIColor(Theme.bg)
+        appearance.titleTextAttributes = [.foregroundColor: UIColor(Theme.text)]
+        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor(Theme.text)]
+
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+        UINavigationBar.appearance().tintColor = UIColor(Theme.olive)
+    }
+
+    var body: some Scene {
+        WindowGroup {
+            ContentView()
+                .environmentObject(store)
+                .environmentObject(session)
+                .environmentObject(feedStore)
+                .tint(Theme.olive)
+                .background(Theme.bg) // ensures consistent background
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
