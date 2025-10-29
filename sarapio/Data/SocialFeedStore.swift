@@ -3,6 +3,8 @@ import Foundation
 final class SocialFeedStore: ObservableObject {
     @Published var posts: [SocialPost] = SocialSampleData.posts
 
+    init() {}
+
     func toggleLike(for post: SocialPost) {
         guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
         posts[index].isLiked.toggle()

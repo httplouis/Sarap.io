@@ -18,7 +18,8 @@ struct ProfileView: View {
     var body: some View {
         ScrollView {
             GeometryReader { proxy in
-                Color.clear.preference(key: ScrollOffsetPreferenceKey.self, value: proxy.frame(in: .global).minY)
+                Color.clear.preference(key: ScrollOffsetPreferenceKey.self,
+                                       value: proxy.frame(in: .global).minY)
             }
             .frame(height: 0)
 

@@ -1,7 +1,7 @@
 import Foundation
 import SwiftUI
 
-struct Recipe: Identifiable, Equatable, Hashable {
+struct Recipe: Identifiable, Equatable, Hashable, Codable {
     var id = UUID()
 
     var title: String

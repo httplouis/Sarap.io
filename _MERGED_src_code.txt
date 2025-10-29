@@ -1,33 +1,168 @@
 📦 MERGED SWIFT SOURCE FILES
 ================================================================================
 
-// ===== FILE: Data/RecipeStore.swift =====
+// ===== FILE: sarapio/Data/RecipeStore.swift =====
 
 import Foundation
+import Supabase
 
+// DB row model (matches your SQL tables/columns)
+struct RecipeRow: Codable {
+    let id: UUID
+    let title: String
+    let minutes: Int
+    let servings: Int
+    let cuisine: String?
+    let region: String?
+    let tags: [String]
+    let ingredients: [Ingredient]
+    let steps: [StepItem]
+    let is_favorite: Bool
+    let author_email: String?
+    let author_name: String?
+    let created_at: String?
+}
+
+@MainActor
 final class RecipeStore: ObservableObject {
-    @Published var recipes: [Recipe] = SampleData.recipes
+    @Published var recipes: [Recipe] = []
 
+    private let db = SupabaseClientManager.shared.database
+    private let table = "recipes"
+
+    // Map DB row -> app model
+    private func toModel(_ r: RecipeRow) -> Recipe {
+        Recipe(
+            id: r.id,
+            title: r.title,
+            minutes: r.minutes,
+            servings: r.servings,
+            cuisine: r.cuisine,
+            region: r.region,
+            tags: r.tags,
+            ingredients: r.ingredients,
+            steps: r.steps,
+            isFavorite: r.is_favorite,
+            authorEmail: r.author_email,
+            authorName: r.author_name,
+            imageData: nil,
+            assetName: nil,
+            imageName: nil
+        )
+    }
+
+    // Map app model -> encodable payload for DB
+    private func toPayload(_ r: Recipe) -> [String: Encodable] {
+        [
+            "id": r.id.uuidString,
+            "title": r.title,
+            "minutes": r.minutes,
+            "servings": r.servings,
+            "cuisine": r.cuisine ?? "",
+            "region": r.region ?? "",
+            "tags": r.tags,
+            "ingredients": r.ingredients,
+            "steps": r.steps,
+            "is_favorite": r.isFavorite,
+            "author_email": r.authorEmail ?? "",
+            "author_name": r.authorName ?? ""
+        ]
+    }
+
+    // MARK: Load all
+    func load() async {
+        do {
+            let response = try await db
+                .from(table)
+                .select()
+                .order("created_at", ascending: false)
+                .execute()
+            let rows = try response.decoded(to: [RecipeRow].self)
+            recipes = rows.map(toModel)
+        } catch {
+            print("❌ load() failed:", error)
+        }
+    }
+
+    // MARK: CRUD used by the views (same signatures as before)
     func add(_ recipe: Recipe, regenerateIdentity: Bool = false) {
-        var draft = recipe
-        if regenerateIdentity { draft.regenerateIdentity() }
-        recipes.insert(draft, at: 0)
+        Task {
+            var draft = recipe
+            if regenerateIdentity { draft.regenerateIdentity() }
+
+            do {
+                _ = try await db
+                    .from(table)
+                    .insert([toPayload(draft)])
+                    .select()    // return inserted row(s)
+                    .single()    // single row
+                    .execute()
+
+                // Refresh list to stay in-sync
+                await load()
+            } catch {
+                print("❌ add() failed:", error)
+                // fallback local insert so UI still updates
+                recipes.insert(draft, at: 0)
+            }
+        }
     }
 
     func delete(_ recipe: Recipe) {
-        recipes.removeAll { $0.id == recipe.id }
+        Task {
+            do {
+                _ = try await db
+                    .from(table)
+                    .delete()
+                    .eq("id", value: recipe.id.uuidString)
+                    .execute()
+
+                recipes.removeAll { $0.id == recipe.id }
+            } catch {
+                print("❌ delete() failed:", error)
+            }
+        }
     }
 
     func toggleFavorite(_ recipe: Recipe) {
-        guard let index = recipes.firstIndex(where: { $0.id == recipe.id }) else { return }
-        recipes[index].isFavorite.toggle()
+        Task {
+            do {
+                let newValue = !recipe.isFavorite
+                _ = try await db
+                    .from(table)
+                    .update(["is_favorite": newValue])
+                    .eq("id", value: recipe.id.uuidString)
+                    .execute()
+
+                // optimistic local update
+                if let i = recipes.firstIndex(where: { $0.id == recipe.id }) {
+                    recipes[i].isFavorite = newValue
+                }
+            } catch {
+                print("❌ toggleFavorite() failed:", error)
+            }
+        }
     }
 
     func update(_ recipe: Recipe, with updated: Recipe) {
-        guard let index = recipes.firstIndex(where: { $0.id == recipe.id }) else { return }
-        recipes[index] = updated
+        Task {
+            do {
+                _ = try await db
+                    .from(table)
+                    .update(toPayload(updated))
+                    .eq("id", value: recipe.id.uuidString)
+                    .execute()
+
+                if let i = recipes.firstIndex(where: { $0.id == recipe.id }) {
+                    recipes[i] = updated
+                }
+            } catch {
+                print("❌ update() failed:", error)
+            }
+        }
     }
 
+    // Filtering helper used by ProfileView
     func recipes(for user: AppUser?) -> [Recipe] {
         guard let user else { return recipes }
         return recipes.filter { $0.authorEmail == user.email }
@@ -38,7 +173,7 @@ final class RecipeStore: ObservableObject {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Data/SampleData.swift =====
+// ===== FILE: sarapio/Data/SampleData.swift =====
 
 import Foundation
 
@@ -120,11 +255,12 @@ enum SampleData {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Data/SessionManager.swift =====
+// ===== FILE: sarapio/Data/SessionManager.swift =====
 
 import Foundation
 import Combine
 import SwiftUI
+import Supabase
 
 struct AppUser: Identifiable, Codable, Equatable {
     let id: UUID
@@ -133,25 +269,17 @@ struct AppUser: Identifiable, Codable, Equatable {
     var avatarSeed: String
     var followers: Int
     var following: Int
-
-    init(id: UUID = UUID(), name: String, email: String, avatarSeed: String = "person.fill", followers: Int = 0, following: Int = 0) {
-        self.id = id
-        self.name = name
-        self.email = email
-        self.avatarSeed = avatarSeed
-        self.followers = followers
-        self.following = following
-    }
 }
 
+@MainActor
 final class SessionManager: ObservableObject {
-    enum AuthError: LocalizedError {
-        case emptyFields
-        case passwordTooShort
-        case passwordMismatch
-        case emailAlreadyUsed
-        case invalidCredentials
+    @Published private(set) var currentUser: AppUser?
+    @Published private(set) var isAuthenticated = false
 
+    private let client = SupabaseClientManager.shared
+
+    enum AuthError: LocalizedError {
+        case emptyFields, passwordTooShort, passwordMismatch, emailAlreadyUsed, invalidCredentials
         var errorDescription: String? {
             switch self {
             case .emptyFields: return "Please fill in all fields."
@@ -163,128 +291,61 @@ final class SessionManager: ObservableObject {
         }
     }
 
-    @Published private(set) var currentUser: AppUser?
-    @Published var rememberMe: Bool = false
-    @Published private(set) var storedUsers: [String: StoredCredentials] = [:]
+    func signup(name: String, email: String, password: String, confirmPassword: String) async throws {
+        guard !name.isEmpty, !email.isEmpty, !password.isEmpty, !confirmPassword.isEmpty else { throw AuthError.emptyFields }
+        guard password.count >= 6 else { throw AuthError.passwordTooShort }
+        guard password == confirmPassword else { throw AuthError.passwordMismatch }
 
-    private let rememberedKey = "sarapio.rememberedUser"
-    private let usersKey = "sarapio.savedUsers"
+        try await client.auth.signUp(email: email, password: password)
 
-    struct StoredCredentials: Codable {
-        var user: AppUser
-        var password: String
+        let newUser = AppUser(id: UUID(), name: name, email: email, avatarSeed: "person.fill", followers: 0, following: 0)
+        try await client.from("users").insert(values: newUser).execute()
+        currentUser = newUser
+        isAuthenticated = true
     }
 
-    init() {
-        loadStoredUsers()
-        seedDemoAccountIfNeeded()
-        autoLoginIfAvailable()
+    func login(email: String, password: String) async throws {
+        guard !email.isEmpty, !password.isEmpty else { throw AuthError.emptyFields }
+        try await client.auth.signIn(email: email, password: password)
+
+        let users: [AppUser] = try await client.from("users")
+            .select()
+            .eq("email", value: email)
+            .execute()
+            .value
+        currentUser = users.first
+        isAuthenticated = true
     }
 
-    func signup(name: String, email: String, password: String, confirmPassword: String, remember: Bool) throws {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
-        let trimmedConfirm = confirmPassword.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !trimmedName.isEmpty, !trimmedEmail.isEmpty, !trimmedPassword.isEmpty, !trimmedConfirm.isEmpty else {
-            throw AuthError.emptyFields
-        }
-        guard trimmedPassword.count >= 6 else { throw AuthError.passwordTooShort }
-        guard trimmedPassword == trimmedConfirm else { throw AuthError.passwordMismatch }
-        guard storedUsers[trimmedEmail] == nil else { throw AuthError.emailAlreadyUsed }
-
-        let avatars = ["person.fill", "fork.knife", "flame.fill", "leaf.fill", "fish.fill"]
-        let user = AppUser(name: trimmedName, email: trimmedEmail,
-                           avatarSeed: avatars.randomElement() ?? "person.fill",
-                           followers: Int.random(in: 20...150),
-                           following: Int.random(in: 10...120))
-        let credentials = StoredCredentials(user: user, password: trimmedPassword)
-        storedUsers[trimmedEmail] = credentials
-        persistUsers()
-        currentUser = user
-        rememberMe = remember
-        persistRememberedUser(remember ? credentials : nil)
-    }
-
-    func login(email: String, password: String, remember: Bool) throws {
-        let trimmedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        let trimmedPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedEmail.isEmpty, !trimmedPassword.isEmpty else { throw AuthError.emptyFields }
-        guard let credentials = storedUsers[trimmedEmail], credentials.password == trimmedPassword else {
-            throw AuthError.invalidCredentials
-        }
-        currentUser = credentials.user
-        rememberMe = remember
-        persistRememberedUser(remember ? credentials : nil)
-    }
-
-    func logout() {
-        currentUser = nil
-        rememberMe = false
-        persistRememberedUser(nil)
-    }
-
-    private func loadStoredUsers() {
-        guard let data = UserDefaults.standard.data(forKey: usersKey) else { return }
-        if let decoded = try? JSONDecoder().decode([String: StoredCredentials].self, from: data) {
-            storedUsers = decoded
+    func logout() async {
+        do {
+            try await client.auth.signOut()
+            currentUser = nil
+            isAuthenticated = false
+        } catch {
+            print("❌ Logout error:", error.localizedDescription)
         }
     }
 
-    private func persistUsers() {
-        if let data = try? JSONEncoder().encode(storedUsers) {
-            UserDefaults.standard.set(data, forKey: usersKey)
-        }
-    }
-
-    private func seedDemoAccountIfNeeded() {
-        if storedUsers.isEmpty {
-            let demo = AppUser(name: "Chef Demo", email: "demo@sarap.io", avatarSeed: "fork.knife", followers: 248, following: 132)
-            storedUsers[demo.email] = StoredCredentials(user: demo, password: "password")
-            persistUsers()
-        }
-    }
-
-    private func autoLoginIfAvailable() {
-        guard let data = UserDefaults.standard.data(forKey: rememberedKey),
-              let stored = try? JSONDecoder().decode(StoredCredentials.self, from: data) else { return }
-        storedUsers[stored.user.email] = storedUsers[stored.user.email] ?? stored
-        currentUser = stored.user
-        rememberMe = true
-    }
-
-    private func persistRememberedUser(_ credentials: StoredCredentials?) {
-        if let credentials {
-            if let data = try? JSONEncoder().encode(credentials) {
-                UserDefaults.standard.set(data, forKey: rememberedKey)
-            }
-        } else {
-            UserDefaults.standard.removeObject(forKey: rememberedKey)
-        }
-    }
-
-    func updateProfile(name: String) {
+    func updateProfile(name: String) async {
         guard var user = currentUser else { return }
         user.name = name
-        currentUser = user
-        if var credentials = storedUsers[user.email] {
-            credentials.user = user
-            storedUsers[user.email] = credentials
-            persistUsers()
-            if rememberMe { persistRememberedUser(credentials) }
+        do {
+            try await client.from("users").update(values: user).eq("email", value: user.email).execute()
+            currentUser = user
+        } catch {
+            print("❌ Update profile error:", error.localizedDescription)
         }
     }
 
-    func updateAvatar(seed: String) {
+    func updateAvatar(seed: String) async {
         guard var user = currentUser else { return }
         user.avatarSeed = seed
-        currentUser = user
-        if var credentials = storedUsers[user.email] {
-            credentials.user = user
-            storedUsers[user.email] = credentials
-            persistUsers()
-            if rememberMe { persistRememberedUser(credentials) }
+        do {
+            try await client.from("users").update(values: ["avatarSeed": seed]).eq("email", value: user.email).execute()
+            currentUser = user
+        } catch {
+            print("❌ Update avatar error:", error.localizedDescription)
         }
     }
 }
@@ -293,36 +354,100 @@ final class SessionManager: ObservableObject {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Data/SocialFeedStore.swift =====
+// ===== FILE: sarapio/Data/SocialFeedStore.swift =====
 
 import Foundation
+import Supabase
 
+@MainActor
 final class SocialFeedStore: ObservableObject {
-    @Published var posts: [SocialPost] = SocialSampleData.posts
+    @Published var posts: [SocialPost] = []
+    private let client = SupabaseClientManager.shared
+    private var postChannel: RealtimeChannel?
+
+    init() {
+        Task {
+            await fetchPosts()
+            setupRealtimeSubscription()
+        }
+    }
+
+    func fetchPosts() async {
+        do {
+            let response: [SocialPost] = try await client
+                .from("posts")
+                .select()
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+            self.posts = response
+        } catch {
+            print("❌ Fetch posts error:", error.localizedDescription)
+        }
+    }
+
+    private func setupRealtimeSubscription() {
+        postChannel = client.channel("public:posts")
+
+        postChannel?.on(.insert) { [weak self] payload in
+            guard let newPost = try? payload.decodeRecord(SocialPost.self) else { return }
+            Task { @MainActor in self?.posts.insert(newPost, at: 0) }
+        }
+
+        postChannel?.on(.update) { [weak self] payload in
+            guard let updated = try? payload.decodeRecord(SocialPost.self),
+                  let index = self?.posts.firstIndex(where: { $0.id == updated.id }) else { return }
+            Task { @MainActor in self?.posts[index] = updated }
+        }
+
+        postChannel?.on(.delete) { [weak self] payload in
+            guard let id = payload.oldRecord?["id"] as? UUID else { return }
+            Task { @MainActor in self?.posts.removeAll { $0.id == id } }
+        }
+
+        postChannel?.subscribe()
+    }
 
     func toggleLike(for post: SocialPost) {
-        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
-        posts[index].isLiked.toggle()
-        posts[index].likes = max(0, posts[index].likes + (posts[index].isLiked ? 1 : -1))
-    }
-
-    func toggleSave(for post: SocialPost) {
-        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
-        posts[index].isSaved.toggle()
-    }
-
-    func setRating(_ rating: Int, for post: SocialPost) {
-        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
-        posts[index].userRating = rating
-    }
-
-    func append(_ post: SocialPost) {
-        posts.insert(post, at: 0)
+        Task {
+            guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
+            let newLikes = posts[index].isLiked ? post.likes - 1 : post.likes + 1
+            posts[index].isLiked.toggle()
+            posts[index].likes = max(0, newLikes)
+            do {
+                try await client.from("posts")
+                    .update(values: ["likes": posts[index].likes])
+                    .eq("id", value: post.id)
+                    .execute()
+            } catch {
+                print("❌ Toggle like error:", error.localizedDescription)
+            }
+        }
     }
 
     func addComment(_ comment: String, to post: SocialPost) {
-        guard let index = posts.firstIndex(where: { $0.id == post.id }) else { return }
-        posts[index].comments.append(comment)
+        Task {
+            do {
+                guard var target = posts.first(where: { $0.id == post.id }) else { return }
+                target.comments.append(comment)
+                try await client.from("posts")
+                    .update(values: ["comments": target.comments])
+                    .eq("id", value: post.id)
+                    .execute()
+            } catch {
+                print("❌ Add comment error:", error.localizedDescription)
+            }
+        }
+    }
+
+    func append(_ post: SocialPost) {
+        Task {
+            do {
+                try await client.from("posts").insert(values: post).execute()
+            } catch {
+                print("❌ Add post error:", error.localizedDescription)
+            }
+        }
     }
 }
 
@@ -330,7 +455,7 @@ final class SocialFeedStore: ObservableObject {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Data/SocialSampleData.swift =====
+// ===== FILE: sarapio/Data/SocialSampleData.swift =====
 
 import Foundation
 
@@ -385,7 +510,7 @@ enum SocialSampleData {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Data/Theme.swift =====
+// ===== FILE: sarapio/Data/Theme.swift =====
 
 import SwiftUI
 
@@ -424,11 +549,11 @@ extension Color {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Models/Ingredient.swift =====
+// ===== FILE: sarapio/Models/Ingredient.swift =====
 
 import Foundation
 
-struct Ingredient: Identifiable, Hashable {
+struct Ingredient: Identifiable, Hashable, Codable {
     var id = UUID()
     var name: String
     var amount: String   // numeric or text amount, e.g. "1", "2.5"
@@ -459,12 +584,12 @@ struct Ingredient: Identifiable, Hashable {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Models/Recipe.swift =====
+// ===== FILE: sarapio/Models/Recipe.swift =====
 
 import Foundation
 import SwiftUI
 
-struct Recipe: Identifiable, Equatable, Hashable {
+struct Recipe: Identifiable, Equatable, Hashable, Codable {
     var id = UUID()
 
     var title: String
@@ -501,11 +626,11 @@ struct Recipe: Identifiable, Equatable, Hashable {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Models/SocialPost.swift =====
+// ===== FILE: sarapio/Models/SocialPost.swift =====
 
 import Foundation
 
-struct SocialPost: Identifiable {
+struct SocialPost: Identifiable, Codable {
     let id: UUID
     let user: String
     let avatar: String?
@@ -523,11 +648,11 @@ struct SocialPost: Identifiable {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Models/StepItem.swift =====
+// ===== FILE: sarapio/Models/StepItem.swift =====
 
 import Foundation
 
-struct StepItem: Identifiable, Equatable, Hashable {
+struct StepItem: Identifiable, Equatable, Hashable, Codable {
     let id = UUID()
     var order: Int
     var text: String
@@ -542,13 +667,171 @@ struct StepItem: Identifiable, Equatable, Hashable {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Utils/BottomBarState.swift =====
+// ===== FILE: sarapio/Repositories/RecipeRepo.swift =====
+
+import Foundation
+import Supabase
+
+@MainActor
+final class RecipeRepo: ObservableObject {
+    private let client = SupabaseClientManager.shared
+    @Published var recipes: [Recipe] = []
+
+    func fetchAll() async {
+        do {
+            let response = try await client
+                .database
+                .from("recipes")
+                .select()
+                .order("created_at", ascending: false)
+                .execute()
+
+            if let fetched = response.value as? [Recipe] {
+                await MainActor.run { self.recipes = fetched }
+            } else {
+                print("⚠️ Could not decode [Recipe]")
+            }
+        } catch {
+            print("❌ Fetch failed:", error.localizedDescription)
+        }
+    }
+
+    func add(_ recipe: Recipe) async {
+        do {
+            _ = try await client
+                .database
+                .from("recipes")
+                .insert([recipe])
+                .execute()
+            await fetchAll()
+        } catch {
+            print("❌ Insert failed:", error.localizedDescription)
+        }
+    }
+
+    func delete(_ id: UUID) async {
+        do {
+            _ = try await client
+                .database
+                .from("recipes")
+                .delete()
+                .eq("id", value: id.uuidString)
+                .execute()
+            await MainActor.run {
+                self.recipes.removeAll { $0.id == id }
+            }
+        } catch {
+            print("❌ Delete failed:", error.localizedDescription)
+        }
+    }
+
+    func toggleFavorite(_ recipe: Recipe) async {
+        do {
+            _ = try await client
+                .database
+                .from("recipes")
+                .update(["is_favorite": !recipe.isFavorite])
+                .eq("id", value: recipe.id.uuidString)
+                .execute()
+            await fetchAll()
+        } catch {
+            print("❌ Toggle failed:", error.localizedDescription)
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: sarapio/Repositories/UserRepo.swift =====
+
+import Foundation
+import Supabase
+
+// Row you read from the DB
+struct AppUserRow: Codable {
+    let id: UUID
+    let name: String
+    let email: String
+    let avatar_seed: String
+    let followers: Int
+    let following: Int
+    let created_at: String?
+}
+
+// Payload you write to the DB (concrete Encodable type)
+struct AppUserInsert: Codable {
+    let id: UUID
+    let name: String
+    let email: String
+    let avatar_seed: String
+    let followers: Int
+    let following: Int
+}
+
+@MainActor
+final class UserRepo {
+    private let db = SupabaseClientManager.shared.database
+
+    /// Upsert current user (by `email`) using a concrete Codable payload.
+    func upsertCurrentUser(_ user: AppUser) async {
+        let payload = AppUserInsert(
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            avatar_seed: user.avatarSeed,
+            followers: user.followers,
+            following: user.following
+        )
+        do {
+            _ = try await db
+                .from("users")
+                .upsert(payload, onConflict: "email")
+                .execute()
+        } catch {
+            print("❌ upsertCurrentUser failed:", error)
+        }
+    }
+
+    /// Fetch a user by email, returning the DB row if found.
+    func fetchByEmail(_ email: String) async -> AppUserRow? {
+        do {
+            let resp = try await db
+                .from("users")
+                .select()              // ensure response is decodable (not Void)
+                .eq("email", value: email)
+                .limit(1)
+                .single()
+                .execute()
+            let row = try resp.decoded(to: AppUserRow.self)
+            return row
+        } catch {
+            print("❌ fetchByEmail failed:", error)
+            return nil
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: sarapio/Utils/BottomBarState.swift =====
 
 import Foundation
 import SwiftUI
 
+// Make BottomTab globally available (no duplicates elsewhere)
+enum BottomTab: Hashable {
+    case recipes
+    case feed
+    case notifications
+    case profile
+}
+
 final class BottomBarState: ObservableObject {
-    @Published var selected: BottomTab = .recipes     // ✅ add this line
+    @Published var selected: BottomTab = .recipes
     @Published var isHidden: Bool = false
 
     private var lastOffset: CGFloat = 0
@@ -562,18 +845,11 @@ final class BottomBarState: ObservableObject {
         }
         let delta = offset - lastOffset
         guard abs(delta) > 8 else { return }
-
-        if delta < 0 {
-            hide()
-        } else {
-            show()
-        }
+        if delta < 0 { hide() } else { show() }
         lastOffset = offset
     }
 
-    func reset() {
-        initialized = false
-    }
+    func reset() { initialized = false }
 
     func hide() {
         withAnimation(.easeInOut(duration: 0.25)) { isHidden = true }
@@ -595,7 +871,7 @@ struct ScrollOffsetPreferenceKey: PreferenceKey {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Utils/ImageResolver.swift =====
+// ===== FILE: sarapio/Utils/ImageResolver.swift =====
 
 import SwiftUI
 
@@ -615,7 +891,7 @@ extension Recipe {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Utils/RecipeNarrator.swift =====
+// ===== FILE: sarapio/Utils/RecipeNarrator.swift =====
 
 import AVFoundation
 import Foundation
@@ -661,7 +937,7 @@ final class RecipeNarrator: NSObject, ObservableObject, AVSpeechSynthesizerDeleg
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/AddHubView.swift =====
+// ===== FILE: sarapio/Views/AddHubView.swift =====
 
 import SwiftUI
 
@@ -787,7 +1063,7 @@ private struct AddSocialPostViewWrapper: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/AddRecipeView.swift =====
+// ===== FILE: sarapio/Views/AddRecipeView.swift =====
 
 import SwiftUI
 import PhotosUI
@@ -827,48 +1103,55 @@ struct AddRecipeView: View {
     }
 
     var body: some View {
-        Form {
-            PhotoSection(
-                pickerItem: $pickerItem,
-                previewImage: { AnyView(previewImage) }   // closure returning AnyView
-            )
+        ScrollView {
+            VStack(spacing: 24) {
+                // MARK: - Photo Picker
+                PhotoSection(
+                    pickerItem: $pickerItem,
+                    previewImage: { AnyView(previewImage) }
+                )
 
+                // MARK: - Basic Info
+                BasicInfoSection(
+                    title: $title,
+                    minutes: $minutes,
+                    servings: $servings,
+                    cuisine: $cuisine,
+                    region: $region
+                )
 
-            BasicInfoSection(
-                title: $title,
-                minutes: $minutes,
-                servings: $servings,
-                cuisine: $cuisine,
-                region: $region
-            )
+                // MARK: - Ingredients
+                IngredientsSection(ingredients: $ingredients)
 
-            IngredientsSection(ingredients: $ingredients)
+                // MARK: - Steps
+                StepsSection(
+                    steps: $steps,
+                    reindexSteps: reindexSteps
+                )
 
-            StepsSection(
-                steps: $steps,
-                reindexSteps: reindexSteps
-            )
-
-            SaveSection(
-                editing: editing,
-                isDisabled: !isFormValid,
-                saveAction: save
-            )
+                // MARK: - Save Button
+                SaveSection(
+                    editing: editing,
+                    isDisabled: !isFormValid,
+                    saveAction: save
+                )
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 24)
         }
-        .scrollContentBackground(.hidden)
-        .background(Theme.bg)
+        .background(Theme.bg.ignoresSafeArea())
         .tint(Theme.olive)
         .navigationTitle(editing == nil ? "Add Recipe" : "Edit Recipe")
-        .toolbar { EditButton() }
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: loadEditingIfAny)
         .onChange(of: pickerItem) {
             Task { await loadPickedImage(from: pickerItem) }
         }
-        .alert("Validation", isPresented: $showValidationError, actions: {
+        .alert("Validation", isPresented: $showValidationError) {
             Button("OK", role: .cancel) { }
-        }, message: {
+        } message: {
             Text(validationMessage)
-        })
+        }
     }
 
     // MARK: - Preview image
@@ -919,6 +1202,7 @@ struct AddRecipeView: View {
         steps = r.steps
     }
 
+    // MARK: - Save
     private func save() {
         guard isFormValid else {
             validationMessage = "Please add a title and at least one ingredient."
@@ -959,7 +1243,7 @@ struct AddRecipeView: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/AddSocialPostView.swift =====
+// ===== FILE: sarapio/Views/AddSocialPostView.swift =====
 
 import SwiftUI
 
@@ -1085,7 +1369,7 @@ struct AddSocialPostView: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/AuthFlowView.swift =====
+// ===== FILE: sarapio/Views/AuthFlowView.swift =====
 
 import SwiftUI
 import UIKit
@@ -1282,7 +1566,7 @@ private struct AuthSecureField: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/Components/Chip.swift =====
+// ===== FILE: sarapio/Views/Components/Chip.swift =====
 
 // Views/Components/Chip.swift
 import SwiftUI
@@ -1314,7 +1598,7 @@ struct Chip: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/Components/Tag.swift =====
+// ===== FILE: sarapio/Views/Components/Tag.swift =====
 
 import SwiftUI
 struct Tag: View {
@@ -1332,16 +1616,9 @@ struct Tag: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/ContentView.swift =====
+// ===== FILE: sarapio/Views/ContentView.swift =====
 
 import SwiftUI
-
-enum BottomTab: Hashable {
-    case recipes
-    case feed
-    case notifications
-    case profile
-}
 
 struct ContentView: View {
     @EnvironmentObject private var store: RecipeStore
@@ -1375,16 +1652,16 @@ struct ContentView: View {
                         ProfileView()
                             .environmentObject(session)
                             .environmentObject(bottomBar)
+                            .environmentObject(store)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg.ignoresSafeArea())
 
-                // MARK: - Bottom Bar + Half Floating Add Button
+                // MARK: - Bottom Bar + Floating Add Button
                 VStack(spacing: 0) {
                     Spacer()
                     ZStack {
-                        // Tab bar background
                         VStack(spacing: 0) {
                             Divider()
                             HStack {
@@ -1399,7 +1676,6 @@ struct ContentView: View {
                             .background(Theme.card)
                         }
 
-                        // Half-floating Add button
                         Button {
                             showAddHub = true
                         } label: {
@@ -1410,7 +1686,7 @@ struct ContentView: View {
                                 .background(Circle().fill(Theme.olive))
                                 .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
                         }
-                        .offset(y: -28) // half-floating position
+                        .offset(y: -28)
                     }
                 }
             }
@@ -1440,6 +1716,21 @@ struct ContentView: View {
                     MessagesView()
                         .environmentObject(session)
                         .navigationBarHidden(true)
+                }
+            }
+        }
+        .onAppear {
+            Task {
+                do {
+                    let response = try await SupabaseClientManager.shared
+                        .database
+                        .from("recipes")
+                        .select()
+                        .limit(1)
+                        .execute()
+                    print("✅ Supabase connected:", response)
+                } catch {
+                    print("❌ Supabase connection test failed:", error.localizedDescription)
                 }
             }
         }
@@ -1477,7 +1768,7 @@ private struct TabButton: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/MessagesView.swift =====
+// ===== FILE: sarapio/Views/MessagesView.swift =====
 
 import SwiftUI
 
@@ -1649,7 +1940,7 @@ struct MessagesView: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/NotificationsView.swift =====
+// ===== FILE: sarapio/Views/NotificationsView.swift =====
 
 import SwiftUI
 
@@ -1719,7 +2010,7 @@ private struct NotificationRow: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/ProfileView.swift =====
+// ===== FILE: sarapio/Views/ProfileView.swift =====
 
 import SwiftUI
 
@@ -1783,7 +2074,9 @@ struct ProfileView: View {
                             .textFieldStyle(.roundedBorder)
                         HStack {
                             Button("Save") {
-                                session.updateProfile(name: editedName)
+                                Task {
+                                    session.updateProfile(name: editedName)
+                                }
                                 isEditingName = false
                             }
                             Button("Cancel") { cancelEditing() }
@@ -1803,8 +2096,10 @@ struct ProfileView: View {
                     Menu("Change Avatar") {
                         ForEach(avatarChoices, id: \.self) { symbol in
                             Button {
-                                selectedAvatar = symbol
-                                session.updateAvatar(seed: symbol)
+                                Task {
+                                    selectedAvatar = symbol
+                                    session.updateAvatar(seed: symbol)
+                                }
                             } label: {
                                 Label(symbol, systemImage: symbol)
                             }
@@ -1872,7 +2167,9 @@ struct ProfileView: View {
 
     private var logoutButton: some View {
         Button {
-            session.logout()
+            Task {
+                session.logout()
+            }
         } label: {
             Text("Log Out")
                 .font(.headline)
@@ -1936,7 +2233,7 @@ private struct FavoriteCard: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/RecipeDetailView.swift =====
+// ===== FILE: sarapio/Views/RecipeDetailView.swift =====
 
 import SwiftUI
 import AVFoundation
@@ -2100,7 +2397,7 @@ struct RecipeDetailView: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/RecipeRow.swift =====
+// ===== FILE: sarapio/Views/RecipeRow.swift =====
 
 // RecipeRow.swift
 import SwiftUI
@@ -2175,7 +2472,7 @@ struct RecipeRow: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/RecipesView.swift =====
+// ===== FILE: sarapio/Views/RecipesView.swift =====
 
 import SwiftUI
 
@@ -2353,7 +2650,7 @@ struct RecipesView: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/Sections/BasicInfoSection.swift =====
+// ===== FILE: sarapio/Views/Sections/BasicInfoSection.swift =====
 
 import SwiftUI
 
@@ -2384,7 +2681,7 @@ struct BasicInfoSection: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/Sections/IngredientsSection.swift =====
+// ===== FILE: sarapio/Views/Sections/IngredientsSection.swift =====
 
 import SwiftUI
 
@@ -2444,7 +2741,7 @@ struct IngredientsSection: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/Sections/PhotoSection.swift =====
+// ===== FILE: sarapio/Views/Sections/PhotoSection.swift =====
 
 import SwiftUI
 import PhotosUI
@@ -2477,7 +2774,7 @@ struct PhotoSection: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/Sections/SaveSection.swift =====
+// ===== FILE: sarapio/Views/Sections/SaveSection.swift =====
 
 import SwiftUI
 
@@ -2506,7 +2803,7 @@ struct SaveSection: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/Sections/StepsSection.swift =====
+// ===== FILE: sarapio/Views/Sections/StepsSection.swift =====
 
 import SwiftUI
 
@@ -2556,7 +2853,7 @@ struct StepsSection: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/SocialFeedView.swift =====
+// ===== FILE: sarapio/Views/SocialFeedView.swift =====
 
 import SwiftUI
 import UIKit
@@ -2831,7 +3128,64 @@ private struct RatingControl: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/Untitled.swift =====
+// ===== FILE: sarapio/Views/SupabaseClientManager.swift =====
+
+import Supabase
+import Foundation
+
+final class SupabaseClientManager {
+    static let shared = SupabaseClient(
+        supabaseURL: URL(string: "https://tmrdvhvhvcfmijvjkzytv.supabase.co")!,
+        supabaseKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtcmR2aGh2Y2ZpbWp2amt6eXR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2NDQ2NDYsImV4cCI6MjA3NzIyMDY0Nn0.Lw_4oN4XlXlN4ZiV5n-T11J0julBccCdJPHm533b2yo"
+    )
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: sarapio/Views/SupabaseTest.swift =====
+
+import SwiftUI
+import Supabase
+
+struct SupabaseTest: View {
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("🔗 Supabase Connection Test")
+                .font(.headline)
+
+            Button("Test Connection") {
+                Task {
+                    await testConnection()
+                }
+            }
+        }
+        .padding()
+    }
+
+    func testConnection() async {
+        let client = SupabaseClientManager.shared
+        do {
+            let response = try await client
+                .database
+                .from("recipes")
+                .select()
+                .limit(1)
+                .execute()
+
+            print("✅ Connection OK:", response)
+        } catch {
+            print("❌ Connection failed:", error.localizedDescription)
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: sarapio/Views/Untitled.swift =====
 
 //
 //  Untitled.swift
@@ -2844,7 +3198,7 @@ private struct RatingControl: View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: Views/View+Placeholder.swift =====
+// ===== FILE: sarapio/Views/View+Placeholder.swift =====
 
 // File: Extensions/View+Placeholder.swift
 import SwiftUI
@@ -2866,7 +3220,47 @@ extension View {
 
 --------------------------------------------------------------------------------
 
-// ===== FILE: sarapioApp.swift =====
+// ===== FILE: sarapio/api/RecipeAPIService.swift =====
+
+import Foundation
+
+struct MealResponse: Codable {
+    let meals: [Meal]?
+}
+
+struct Meal: Codable, Identifiable {
+    let idMeal: String
+    let strMeal: String
+    let strCategory: String?
+    let strInstructions: String?
+    let strMealThumb: String?
+
+    var id: String { idMeal }
+}
+
+@MainActor
+final class RecipeAPIService: ObservableObject {
+    @Published var searchResults: [Meal] = []
+
+    func searchRecipes(query: String) async {
+        guard let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              let url = URL(string: "https://www.themealdb.com/api/json/v1/1/search.php?s=\(encoded)") else { return }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let decoded = try JSONDecoder().decode(MealResponse.self, from: data)
+            self.searchResults = decoded.meals ?? []
+        } catch {
+            print("❌ API fetch failed:", error.localizedDescription)
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: sarapio/sarapioApp.swift =====
 
 import SwiftUI
 
@@ -2877,23 +3271,17 @@ struct SarapIOApp: App {
     @StateObject private var feedStore = SocialFeedStore()
 
     init() {
-        // UINavigationBar appearance configuration (SwiftUI-safe)
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(Theme.bg)
-        appearance.titleTextAttributes = [
-            .foregroundColor: UIColor(Theme.text)
-        ]
-        appearance.largeTitleTextAttributes = [
-            .foregroundColor: UIColor(Theme.text)
-        ]
+        appearance.titleTextAttributes = [.foregroundColor: UIColor(Theme.text)]
+        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor(Theme.text)]
 
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
         UINavigationBar.appearance().compactAppearance = appearance
         UINavigationBar.appearance().tintColor = UIColor(Theme.olive)
 
-        // UITabBar appearance (for system sheets or secondary views)
         let tabBarAppearance = UITabBarAppearance()
         tabBarAppearance.configureWithOpaqueBackground()
         tabBarAppearance.backgroundColor = UIColor(Theme.bg)
@@ -2908,9 +3296,123 @@ struct SarapIOApp: App {
                 .environmentObject(session)
                 .environmentObject(feedStore)
                 .tint(Theme.olive)
-                .background(Theme.bg.ignoresSafeArea()) // consistent background
-                .preferredColorScheme(.light) // optional: lock to light mode
+                .background(Theme.bg.ignoresSafeArea())
+                .preferredColorScheme(.light)
         }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: sarapioTests/sarapioTests.swift =====
+
+//
+//  sarapioTests.swift
+//  sarapioTests
+//
+//  Created by STUDENT on 8/29/25.
+//
+
+import Testing
+@testable import sarapio
+
+struct sarapioTests {
+
+    @Test func example() async throws {
+        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    }
+
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: sarapioUITests/sarapioUITests.swift =====
+
+//
+//  sarapioUITests.swift
+//  sarapioUITests
+//
+//  Created by STUDENT on 8/29/25.
+//
+
+import XCTest
+
+final class sarapioUITests: XCTestCase {
+
+    override func setUpWithError() throws {
+        // Put setup code here. This method is called before the invocation of each test method in the class.
+
+        // In UI tests it is usually best to stop immediately when a failure occurs.
+        continueAfterFailure = false
+
+        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
+    }
+
+    override func tearDownWithError() throws {
+        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    }
+
+    @MainActor
+    func testExample() throws {
+        // UI tests must launch the application that they test.
+        let app = XCUIApplication()
+        app.launch()
+
+        // Use XCTAssert and related functions to verify your tests produce the correct results.
+    }
+
+    @MainActor
+    func testLaunchPerformance() throws {
+        if #available(macOS 10.15, iOS 13.0, tvOS 13.0, watchOS 7.0, *) {
+            // This measures how long it takes to launch your application.
+            measure(metrics: [XCTApplicationLaunchMetric()]) {
+                XCUIApplication().launch()
+            }
+        }
+    }
+}
+
+// ===== END OF FILE =====
+
+--------------------------------------------------------------------------------
+
+// ===== FILE: sarapioUITests/sarapioUITestsLaunchTests.swift =====
+
+//
+//  sarapioUITestsLaunchTests.swift
+//  sarapioUITests
+//
+//  Created by STUDENT on 8/29/25.
+//
+
+import XCTest
+
+final class sarapioUITestsLaunchTests: XCTestCase {
+
+    override class var runsForEachTargetApplicationUIConfiguration: Bool {
+        true
+    }
+
+    override func setUpWithError() throws {
+        continueAfterFailure = false
+    }
+
+    @MainActor
+    func testLaunch() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        // Insert steps here to perform after app launch but before taking a screenshot,
+        // such as logging into a test account or navigating somewhere in the app
+
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "Launch Screen"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 }
 

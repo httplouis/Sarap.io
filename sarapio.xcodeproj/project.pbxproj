@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		3F566B692EB2121D002796DB /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 3F566B682EB2121D002796DB /* Auth */; };
+		3F566B6B2EB2121D002796DB /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 3F566B6A2EB2121D002796DB /* Functions */; };
+		3F566B6D2EB2121D002796DB /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 3F566B6C2EB2121D002796DB /* PostgREST */; };
+		3F566B6F2EB2121D002796DB /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 3F566B6E2EB2121D002796DB /* Realtime */; };
+		3F566B712EB2121D002796DB /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 3F566B702EB2121D002796DB /* Storage */; };
+		3FD139292EB20B4E003FDBA7 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 3FD139282EB20B4E003FDBA7 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		3F5FC22F2E61AA06006D032B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -22,6 +31,19 @@
 			remoteInfo = sarapio;
 		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		3F566B722EB21266002796DB /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 8;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 1;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		3F5FC21E2E61AA05006D032B /* sarapio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = sarapio.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -52,6 +74,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				3F566B712EB2121D002796DB /* Storage in Frameworks */,
+				3F566B6D2EB2121D002796DB /* PostgREST in Frameworks */,
+				3F566B6B2EB2121D002796DB /* Functions in Frameworks */,
+				3F566B692EB2121D002796DB /* Auth in Frameworks */,
+				3F566B6F2EB2121D002796DB /* Realtime in Frameworks */,
+				3FD139292EB20B4E003FDBA7 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +106,7 @@
 				3F5FC2202E61AA05006D032B /* sarapio */,
 				3F5FC2312E61AA06006D032B /* sarapioTests */,
 				3F5FC23B2E61AA06006D032B /* sarapioUITests */,
+				3FD139242EB20ACC003FDBA7 /* Frameworks */,
 				3F5FC21F2E61AA05006D032B /* Products */,
 			);
 			sourceTree = "<group>";
@@ -92,6 +121,13 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		3FD139242EB20ACC003FDBA7 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -102,6 +138,7 @@
 				3F5FC21A2E61AA05006D032B /* Sources */,
 				3F5FC21B2E61AA05006D032B /* Frameworks */,
 				3F5FC21C2E61AA05006D032B /* Resources */,
+				3F566B722EB21266002796DB /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -112,6 +149,12 @@
 			);
 			name = sarapio;
 			packageProductDependencies = (
+				3FD139282EB20B4E003FDBA7 /* Supabase */,
+				3F566B682EB2121D002796DB /* Auth */,
+				3F566B6A2EB2121D002796DB /* Functions */,
+				3F566B6C2EB2121D002796DB /* PostgREST */,
+				3F566B6E2EB2121D002796DB /* Realtime */,
+				3F566B702EB2121D002796DB /* Storage */,
 			);
 			productName = sarapio;
 			productReference = 3F5FC21E2E61AA05006D032B /* sarapio.app */;
@@ -195,6 +238,9 @@
 			);
 			mainGroup = 3F5FC2152E61AA05006D032B;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3FD139272EB20B32003FDBA7 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 3F5FC21F2E61AA05006D032B /* Products */;
 			projectDirPath = "";
@@ -397,6 +443,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"sarapio/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -413,6 +460,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				sd = "";
 			};
 			name = Debug;
 		};
@@ -425,6 +473,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"sarapio/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -441,6 +490,7 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
+				sd = "";
 			};
 			name = Release;
 		};
@@ -552,6 +602,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3FD139272EB20B32003FDBA7 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase-community/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3F566B682EB2121D002796DB /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3FD139272EB20B32003FDBA7 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		3F566B6A2EB2121D002796DB /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3FD139272EB20B32003FDBA7 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		3F566B6C2EB2121D002796DB /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3FD139272EB20B32003FDBA7 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		3F566B6E2EB2121D002796DB /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3FD139272EB20B32003FDBA7 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		3F566B702EB2121D002796DB /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3FD139272EB20B32003FDBA7 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		3FD139282EB20B4E003FDBA7 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3FD139272EB20B32003FDBA7 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 3F5FC2162E61AA05006D032B /* Project object */;
 }

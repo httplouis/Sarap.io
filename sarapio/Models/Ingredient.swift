@@ -1,6 +1,6 @@
 import Foundation
 
-struct Ingredient: Identifiable, Hashable {
+struct Ingredient: Identifiable, Hashable, Codable {
     var id = UUID()
     var name: String
     var amount: String   // numeric or text amount, e.g. "1", "2.5"

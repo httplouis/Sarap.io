@@ -1,12 +1,5 @@
 import SwiftUI
 
-enum BottomTab: Hashable {
-    case recipes
-    case feed
-    case notifications
-    case profile
-}
-
 struct ContentView: View {
     @EnvironmentObject private var store: RecipeStore
     @EnvironmentObject private var session: SessionManager
@@ -39,16 +32,16 @@ struct ContentView: View {
                         ProfileView()
                             .environmentObject(session)
                             .environmentObject(bottomBar)
+                            .environmentObject(store)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(Theme.bg.ignoresSafeArea())
 
-                // MARK: - Bottom Bar + Half Floating Add Button
+                // MARK: - Bottom Bar + Floating Add Button
                 VStack(spacing: 0) {
                     Spacer()
                     ZStack {
-                        // Tab bar background
                         VStack(spacing: 0) {
                             Divider()
                             HStack {
@@ -63,7 +56,6 @@ struct ContentView: View {
                             .background(Theme.card)
                         }
 
-                        // Half-floating Add button
                         Button {
                             showAddHub = true
                         } label: {
@@ -74,7 +66,7 @@ struct ContentView: View {
                                 .background(Circle().fill(Theme.olive))
                                 .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
                         }
-                        .offset(y: -28) // half-floating position
+                        .offset(y: -28)
                     }
                 }
             }
@@ -104,6 +96,21 @@ struct ContentView: View {
                     MessagesView()
                         .environmentObject(session)
                         .navigationBarHidden(true)
+                }
+            }
+        }
+        .onAppear {
+            Task {
+                do {
+                    let response = try await SupabaseClientManager.shared
+                        .database
+                        .from("recipes")
+                        .select()
+                        .limit(1)
+                        .execute()
+                    print("✅ Supabase connected:", response)
+                } catch {
+                    print("❌ Supabase connection test failed:", error.localizedDescription)
                 }
             }
         }

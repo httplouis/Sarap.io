@@ -10,7 +10,14 @@ struct AppUser: Identifiable, Codable, Equatable {
     var followers: Int
     var following: Int
 
-    init(id: UUID = UUID(), name: String, email: String, avatarSeed: String = "person.fill", followers: Int = 0, following: Int = 0) {
+    init(
+        id: UUID = UUID(),
+        name: String,
+        email: String,
+        avatarSeed: String = "person.fill",
+        followers: Int = 0,
+        following: Int = 0
+    ) {
         self.id = id
         self.name = name
         self.email = email
@@ -20,6 +27,7 @@ struct AppUser: Identifiable, Codable, Equatable {
     }
 }
 
+@MainActor
 final class SessionManager: ObservableObject {
     enum AuthError: LocalizedError {
         case emptyFields
@@ -71,10 +79,13 @@ final class SessionManager: ObservableObject {
         guard storedUsers[trimmedEmail] == nil else { throw AuthError.emailAlreadyUsed }
 
         let avatars = ["person.fill", "fork.knife", "flame.fill", "leaf.fill", "fish.fill"]
-        let user = AppUser(name: trimmedName, email: trimmedEmail,
-                           avatarSeed: avatars.randomElement() ?? "person.fill",
-                           followers: Int.random(in: 20...150),
-                           following: Int.random(in: 10...120))
+        let user = AppUser(
+            name: trimmedName,
+            email: trimmedEmail,
+            avatarSeed: avatars.randomElement() ?? "person.fill",
+            followers: Int.random(in: 20...150),
+            following: Int.random(in: 10...120)
+        )
         let credentials = StoredCredentials(user: user, password: trimmedPassword)
         storedUsers[trimmedEmail] = credentials
         persistUsers()
@@ -116,25 +127,32 @@ final class SessionManager: ObservableObject {
 
     private func seedDemoAccountIfNeeded() {
         if storedUsers.isEmpty {
-            let demo = AppUser(name: "Chef Demo", email: "demo@sarap.io", avatarSeed: "fork.knife", followers: 248, following: 132)
+            let demo = AppUser(
+                name: "Chef Demo",
+                email: "demo@sarap.io",
+                avatarSeed: "fork.knife",
+                followers: 248,
+                following: 132
+            )
             storedUsers[demo.email] = StoredCredentials(user: demo, password: "password")
             persistUsers()
         }
     }
 
     private func autoLoginIfAvailable() {
-        guard let data = UserDefaults.standard.data(forKey: rememberedKey),
-              let stored = try? JSONDecoder().decode(StoredCredentials.self, from: data) else { return }
+        guard
+            let data = UserDefaults.standard.data(forKey: rememberedKey),
+            let stored = try? JSONDecoder().decode(StoredCredentials.self, from: data)
+        else { return }
+
         storedUsers[stored.user.email] = storedUsers[stored.user.email] ?? stored
         currentUser = stored.user
         rememberMe = true
     }
 
     private func persistRememberedUser(_ credentials: StoredCredentials?) {
-        if let credentials {
-            if let data = try? JSONEncoder().encode(credentials) {
-                UserDefaults.standard.set(data, forKey: rememberedKey)
-            }
+        if let credentials, let data = try? JSONEncoder().encode(credentials) {
+            UserDefaults.standard.set(data, forKey: rememberedKey)
         } else {
             UserDefaults.standard.removeObject(forKey: rememberedKey)
         }

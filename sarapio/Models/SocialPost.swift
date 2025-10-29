@@ -1,6 +1,6 @@
 import Foundation
 
-struct SocialPost: Identifiable {
+struct SocialPost: Identifiable, Codable {
     let id: UUID
     let user: String
     let avatar: String?

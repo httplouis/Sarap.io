@@ -1,7 +1,13 @@
+// sarapio/Data/RecipeStore.swift
 import Foundation
 
+@MainActor
 final class RecipeStore: ObservableObject {
     @Published var recipes: [Recipe] = SampleData.recipes
+
+    init() {}
+
+    // MARK: - Local mutations (UI calls these)
 
     func add(_ recipe: Recipe, regenerateIdentity: Bool = false) {
         var draft = recipe

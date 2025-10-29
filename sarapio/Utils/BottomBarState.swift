@@ -1,8 +1,16 @@
 import Foundation
 import SwiftUI
 
+// Make BottomTab globally available (no duplicates elsewhere)
+enum BottomTab: Hashable {
+    case recipes
+    case feed
+    case notifications
+    case profile
+}
+
 final class BottomBarState: ObservableObject {
-    @Published var selected: BottomTab = .recipes     // ✅ add this line
+    @Published var selected: BottomTab = .recipes
     @Published var isHidden: Bool = false
 
     private var lastOffset: CGFloat = 0
@@ -16,18 +24,11 @@ final class BottomBarState: ObservableObject {
         }
         let delta = offset - lastOffset
         guard abs(delta) > 8 else { return }
-
-        if delta < 0 {
-            hide()
-        } else {
-            show()
-        }
+        if delta < 0 { hide() } else { show() }
         lastOffset = offset
     }
 
-    func reset() {
-        initialized = false
-    }
+    func reset() { initialized = false }
 
     func hide() {
         withAnimation(.easeInOut(duration: 0.25)) { isHidden = true }
