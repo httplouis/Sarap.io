@@ -36,48 +36,55 @@ struct AddRecipeView: View {
     }
 
     var body: some View {
-        Form {
-            PhotoSection(
-                pickerItem: $pickerItem,
-                previewImage: { AnyView(previewImage) }   // closure returning AnyView
-            )
+        ScrollView {
+            VStack(spacing: 24) {
+                // MARK: - Photo Picker
+                PhotoSection(
+                    pickerItem: $pickerItem,
+                    previewImage: { AnyView(previewImage) }
+                )
 
+                // MARK: - Basic Info
+                BasicInfoSection(
+                    title: $title,
+                    minutes: $minutes,
+                    servings: $servings,
+                    cuisine: $cuisine,
+                    region: $region
+                )
 
-            BasicInfoSection(
-                title: $title,
-                minutes: $minutes,
-                servings: $servings,
-                cuisine: $cuisine,
-                region: $region
-            )
+                // MARK: - Ingredients
+                IngredientsSection(ingredients: $ingredients)
 
-            IngredientsSection(ingredients: $ingredients)
+                // MARK: - Steps
+                StepsSection(
+                    steps: $steps,
+                    reindexSteps: reindexSteps
+                )
 
-            StepsSection(
-                steps: $steps,
-                reindexSteps: reindexSteps
-            )
-
-            SaveSection(
-                editing: editing,
-                isDisabled: !isFormValid,
-                saveAction: save
-            )
+                // MARK: - Save Button
+                SaveSection(
+                    editing: editing,
+                    isDisabled: !isFormValid,
+                    saveAction: save
+                )
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 24)
         }
-        .scrollContentBackground(.hidden)
-        .background(Theme.bg)
+        .background(Theme.bg.ignoresSafeArea())
         .tint(Theme.olive)
         .navigationTitle(editing == nil ? "Add Recipe" : "Edit Recipe")
-        .toolbar { EditButton() }
+        .navigationBarTitleDisplayMode(.inline)
         .onAppear(perform: loadEditingIfAny)
         .onChange(of: pickerItem) {
             Task { await loadPickedImage(from: pickerItem) }
         }
-        .alert("Validation", isPresented: $showValidationError, actions: {
+        .alert("Validation", isPresented: $showValidationError) {
             Button("OK", role: .cancel) { }
-        }, message: {
+        } message: {
             Text(validationMessage)
-        })
+        }
     }
 
     // MARK: - Preview image
@@ -128,6 +135,7 @@ struct AddRecipeView: View {
         steps = r.steps
     }
 
+    // MARK: - Save
     private func save() {
         guard isFormValid else {
             validationMessage = "Please add a title and at least one ingredient."

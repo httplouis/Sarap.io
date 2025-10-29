@@ -548,7 +548,9 @@ import Foundation
 import SwiftUI
 
 final class BottomBarState: ObservableObject {
+    @Published var selected: BottomTab = .recipes     // ✅ add this line
     @Published var isHidden: Bool = false
+
     private var lastOffset: CGFloat = 0
     private var initialized = false
 
@@ -560,6 +562,7 @@ final class BottomBarState: ObservableObject {
         }
         let delta = offset - lastOffset
         guard abs(delta) > 8 else { return }
+
         if delta < 0 {
             hide()
         } else {
@@ -1333,145 +1336,113 @@ struct Tag: View {
 
 import SwiftUI
 
-struct ContentView: View {
-    @EnvironmentObject private var session: SessionManager
-
-    var body: some View {
-        Group {
-            if session.currentUser != nil {
-                HomeTabView()
-            } else {
-                AuthFlowView()
-            }
-        }
-        .animation(.easeInOut(duration: 0.25), value: session.currentUser != nil)
-    }
+enum BottomTab: Hashable {
+    case recipes
+    case feed
+    case notifications
+    case profile
 }
 
-// ===== END OF FILE =====
-
---------------------------------------------------------------------------------
-
-// ===== FILE: Views/HomeTabView.swift =====
-
-import SwiftUI
-
-struct HomeTabView: View {
-    @State private var selectedTab: Tab = .recipes
-    @StateObject private var bottomBarState = BottomBarState()
-
+struct ContentView: View {
     @EnvironmentObject private var store: RecipeStore
     @EnvironmentObject private var session: SessionManager
     @EnvironmentObject private var feedStore: SocialFeedStore
+    @StateObject private var bottomBar = BottomBarState()
 
-    enum Tab: Int, CaseIterable {
-        case recipes
-        case feed
-        case add
-        case notifications
-        case messages
-        case profile
-    }
+    @State private var selectedTab: BottomTab = .recipes
+    @State private var showAddHub = false
+    @State private var showMessages = false
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            TabView(selection: $selectedTab) {
-                NavigationStack {
-                    RecipesView()
-                        .navigationTitle("Recipes")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbarBackground(Theme.bg, for: .navigationBar)
-                        .toolbarBackground(.visible, for: .navigationBar)
+        NavigationStack {
+            ZStack {
+                // MARK: - Tab Content
+                Group {
+                    switch selectedTab {
+                    case .recipes:
+                        RecipesView()
+                            .environmentObject(store)
+                            .environmentObject(bottomBar)
+                    case .feed:
+                        SocialFeedView()
+                            .environmentObject(feedStore)
+                            .environmentObject(session)
+                            .environmentObject(bottomBar)
+                    case .notifications:
+                        NotificationsView()
+                            .environmentObject(bottomBar)
+                    case .profile:
+                        ProfileView()
+                            .environmentObject(session)
+                            .environmentObject(bottomBar)
+                    }
                 }
-                .tag(Tab.recipes)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Theme.bg.ignoresSafeArea())
 
-                NavigationStack {
-                    SocialFeedView()
-                        .navigationTitle("Feed")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbarBackground(Theme.bg, for: .navigationBar)
-                        .toolbarBackground(.visible, for: .navigationBar)
+                // MARK: - Bottom Bar + Half Floating Add Button
+                VStack(spacing: 0) {
+                    Spacer()
+                    ZStack {
+                        // Tab bar background
+                        VStack(spacing: 0) {
+                            Divider()
+                            HStack {
+                                TabButton(icon: "book.closed", title: "Recipes", tab: .recipes, selected: $selectedTab)
+                                TabButton(icon: "sparkles", title: "Feed", tab: .feed, selected: $selectedTab)
+                                Spacer(minLength: 60)
+                                TabButton(icon: "bell", title: "Notifications", tab: .notifications, selected: $selectedTab)
+                                TabButton(icon: "person.circle", title: "Profile", tab: .profile, selected: $selectedTab)
+                            }
+                            .padding(.top, 6)
+                            .padding(.bottom, 12)
+                            .background(Theme.card)
+                        }
+
+                        // Half-floating Add button
+                        Button {
+                            showAddHub = true
+                        } label: {
+                            Image(systemName: "plus")
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 58, height: 58)
+                                .background(Circle().fill(Theme.olive))
+                                .shadow(color: .black.opacity(0.25), radius: 8, y: 4)
+                        }
+                        .offset(y: -28) // half-floating position
+                    }
                 }
-                .tag(Tab.feed)
-
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showMessages = true
+                    } label: {
+                        Image(systemName: "paperplane.fill")
+                            .font(.title3)
+                            .foregroundColor(Theme.olive)
+                    }
+                }
+            }
+            .sheet(isPresented: $showAddHub) {
                 NavigationStack {
                     AddHubView()
-                        .navigationTitle("Add")
+                        .environmentObject(store)
+                        .environmentObject(session)
+                        .environmentObject(feedStore)
+                        .navigationTitle("Create")
                         .navigationBarTitleDisplayMode(.inline)
-                        .toolbarBackground(Theme.bg, for: .navigationBar)
-                        .toolbarBackground(.visible, for: .navigationBar)
                 }
-                .tag(Tab.add)
-
-                NavigationStack {
-                    NotificationsView()
-                        .navigationTitle("Alerts")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbarBackground(Theme.bg, for: .navigationBar)
-                        .toolbarBackground(.visible, for: .navigationBar)
-                }
-                .tag(Tab.notifications)
-
+            }
+            .sheet(isPresented: $showMessages) {
                 NavigationStack {
                     MessagesView()
-                        .navigationTitle("Messages")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbarBackground(Theme.bg, for: .navigationBar)
-                        .toolbarBackground(.visible, for: .navigationBar)
+                        .environmentObject(session)
+                        .navigationBarHidden(true)
                 }
-                .tag(Tab.messages)
-
-                NavigationStack {
-                    ProfileView()
-                        .navigationTitle("Profile")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbarBackground(Theme.bg, for: .navigationBar)
-                        .toolbarBackground(.visible, for: .navigationBar)
-                }
-                .tag(Tab.profile)
             }
-            .environmentObject(bottomBarState)
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .tint(Theme.olive)
-
-            BottomNavigationBar(selectedTab: $selectedTab, isHidden: bottomBarState.isHidden)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 12)
         }
-        .onChange(of: selectedTab) { _ in
-            bottomBarState.show()
-            bottomBarState.reset()
-        }
-        .background(Theme.bg.ignoresSafeArea())
-    }
-}
-
-// MARK: - Bottom Navigation Bar
-private struct BottomNavigationBar: View {
-    @Binding var selectedTab: HomeTabView.Tab
-    var isHidden: Bool
-
-    var body: some View {
-        HStack(spacing: 0) {
-            TabButton(icon: "book.fill", title: "Recipes", tab: .recipes, selectedTab: $selectedTab)
-            Spacer(minLength: 12)
-            TabButton(icon: "sparkles.rectangle.stack", title: "Feed", tab: .feed, selectedTab: $selectedTab)
-            Spacer(minLength: 12)
-            AddTabButton(tab: .add, selectedTab: $selectedTab)
-            Spacer(minLength: 12)
-            TabButton(icon: "bell.badge.fill", title: "Alerts", tab: .notifications, selectedTab: $selectedTab)
-            Spacer(minLength: 12)
-            TabButton(icon: "bubble.left.and.bubble.right.fill", title: "Messages", tab: .messages, selectedTab: $selectedTab)
-            Spacer(minLength: 12)
-            TabButton(icon: "person.crop.circle.fill", title: "Profile", tab: .profile, selectedTab: $selectedTab)
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 14)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .shadow(color: .black.opacity(0.08), radius: 10, y: 6)
-        .offset(y: isHidden ? 120 : 0)
-        .animation(.easeInOut(duration: 0.25), value: isHidden)
     }
 }
 
@@ -1479,47 +1450,25 @@ private struct BottomNavigationBar: View {
 private struct TabButton: View {
     var icon: String
     var title: String
-    var tab: HomeTabView.Tab
-    @Binding var selectedTab: HomeTabView.Tab
+    var tab: BottomTab
+    @Binding var selected: BottomTab
 
     var body: some View {
         Button {
-            withAnimation(.easeInOut(duration: 0.2)) { selectedTab = tab }
+            withAnimation(.easeInOut(duration: 0.2)) { selected = tab }
         } label: {
-            VStack(spacing: 4) {
+            VStack(spacing: 3) {
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(selectedTab == tab ? Theme.olive : Theme.subtext)
+                    .foregroundStyle(selected == tab ? Theme.olive : Theme.subtext)
                 Text(title)
-                    .font(.caption2)
-                    .foregroundStyle(selectedTab == tab ? Theme.olive : Theme.subtext)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.9)
+                    .foregroundStyle(selected == tab ? Theme.olive : Theme.subtext)
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.plain)
-    }
-}
-
-// MARK: - Add Button
-private struct AddTabButton: View {
-    var tab: HomeTabView.Tab
-    @Binding var selectedTab: HomeTabView.Tab
-
-    var body: some View {
-        Button {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) { selectedTab = tab }
-        } label: {
-            ZStack {
-                Circle()
-                    .fill(Theme.olive)
-                    .frame(width: 64, height: 64)
-                    .shadow(color: .black.opacity(0.16), radius: 10, y: 8)
-                Image(systemName: "plus")
-                    .font(.system(size: 28, weight: .heavy))
-                    .foregroundStyle(.white)
-            }
-        }
-        .offset(y: -18)
         .buttonStyle(.plain)
     }
 }
@@ -2928,17 +2877,28 @@ struct SarapIOApp: App {
     @StateObject private var feedStore = SocialFeedStore()
 
     init() {
-        // Configure UINavigationBar appearance the SwiftUI-safe way
+        // UINavigationBar appearance configuration (SwiftUI-safe)
         let appearance = UINavigationBarAppearance()
         appearance.configureWithOpaqueBackground()
         appearance.backgroundColor = UIColor(Theme.bg)
-        appearance.titleTextAttributes = [.foregroundColor: UIColor(Theme.text)]
-        appearance.largeTitleTextAttributes = [.foregroundColor: UIColor(Theme.text)]
+        appearance.titleTextAttributes = [
+            .foregroundColor: UIColor(Theme.text)
+        ]
+        appearance.largeTitleTextAttributes = [
+            .foregroundColor: UIColor(Theme.text)
+        ]
 
         UINavigationBar.appearance().standardAppearance = appearance
         UINavigationBar.appearance().scrollEdgeAppearance = appearance
         UINavigationBar.appearance().compactAppearance = appearance
         UINavigationBar.appearance().tintColor = UIColor(Theme.olive)
+
+        // UITabBar appearance (for system sheets or secondary views)
+        let tabBarAppearance = UITabBarAppearance()
+        tabBarAppearance.configureWithOpaqueBackground()
+        tabBarAppearance.backgroundColor = UIColor(Theme.bg)
+        UITabBar.appearance().standardAppearance = tabBarAppearance
+        UITabBar.appearance().scrollEdgeAppearance = tabBarAppearance
     }
 
     var body: some Scene {
@@ -2948,7 +2908,8 @@ struct SarapIOApp: App {
                 .environmentObject(session)
                 .environmentObject(feedStore)
                 .tint(Theme.olive)
-                .background(Theme.bg) // ensures consistent background
+                .background(Theme.bg.ignoresSafeArea()) // consistent background
+                .preferredColorScheme(.light) // optional: lock to light mode
         }
     }
 }
