@@ -1,0 +1,680 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		3F00C14F2EB3470100258D33 /* sarapioTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1442EB3470100258D33 /* sarapioTests.swift */; };
+		3F00C1502EB3470100258D33 /* RecipesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1392EB3470100258D33 /* RecipesView.swift */; };
+		3F00C1512EB3470100258D33 /* Tag.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1262EB3470100258D33 /* Tag.swift */; };
+		3F00C1522EB3470100258D33 /* BasicInfoSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1282EB3470100258D33 /* BasicInfoSection.swift */; };
+		3F00C1532EB3470100258D33 /* SaveSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C12B2EB3470100258D33 /* SaveSection.swift */; };
+		3F00C1542EB3470100258D33 /* AddSocialPostView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1302EB3470100258D33 /* AddSocialPostView.swift */; };
+		3F00C1552EB3470100258D33 /* RecipeRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1382EB3470100258D33 /* RecipeRow.swift */; };
+		3F00C1562EB3470100258D33 /* IngredientsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1292EB3470100258D33 /* IngredientsSection.swift */; };
+		3F00C1572EB3470100258D33 /* View+Placeholder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C13C2EB3470100258D33 /* View+Placeholder.swift */; };
+		3F00C1582EB3470100258D33 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1362EB3470100258D33 /* ProfileView.swift */; };
+		3F00C1592EB3470100258D33 /* AddRecipeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C12F2EB3470100258D33 /* AddRecipeView.swift */; };
+		3F00C15A2EB3470100258D33 /* SocialFeedStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1162EB3470100258D33 /* SocialFeedStore.swift */; };
+		3F00C15B2EB3470100258D33 /* Chip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1252EB3470100258D33 /* Chip.swift */; };
+		3F00C15C2EB3470100258D33 /* SocialSampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1172EB3470100258D33 /* SocialSampleData.swift */; };
+		3F00C15D2EB3470100258D33 /* sarapioUITestsLaunchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1472EB3470100258D33 /* sarapioUITestsLaunchTests.swift */; };
+		3F00C15E2EB3470100258D33 /* RecipeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1372EB3470100258D33 /* RecipeDetailView.swift */; };
+		3F00C15F2EB3470100258D33 /* AuthFlowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1312EB3470100258D33 /* AuthFlowView.swift */; };
+		3F00C1602EB3470100258D33 /* RecipeNarrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1232EB3470100258D33 /* RecipeNarrator.swift */; };
+		3F00C1612EB3470100258D33 /* HomeTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1332EB3470100258D33 /* HomeTabView.swift */; };
+		3F00C1622EB3470100258D33 /* SessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1152EB3470100258D33 /* SessionManager.swift */; };
+		3F00C1632EB3470100258D33 /* ImageResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1222EB3470100258D33 /* ImageResolver.swift */; };
+		3F00C1642EB3470100258D33 /* RecipeStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1132EB3470100258D33 /* RecipeStore.swift */; };
+		3F00C1652EB3470100258D33 /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1142EB3470100258D33 /* SampleData.swift */; };
+		3F00C1662EB3470100258D33 /* sarapioApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1402EB3470100258D33 /* sarapioApp.swift */; };
+		3F00C1672EB3470100258D33 /* Untitled.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C13B2EB3470100258D33 /* Untitled.swift */; };
+		3F00C1682EB3470100258D33 /* AddHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C12E2EB3470100258D33 /* AddHubView.swift */; };
+		3F00C1692EB3470100258D33 /* MessagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1342EB3470100258D33 /* MessagesView.swift */; };
+		3F00C16A2EB3470100258D33 /* Recipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C11B2EB3470100258D33 /* Recipe.swift */; };
+		3F00C16B2EB3470100258D33 /* StepItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C11D2EB3470100258D33 /* StepItem.swift */; };
+		3F00C16C2EB3470100258D33 /* StepsSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C12C2EB3470100258D33 /* StepsSection.swift */; };
+		3F00C16D2EB3470100258D33 /* SocialFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C13A2EB3470100258D33 /* SocialFeedView.swift */; };
+		3F00C16E2EB3470100258D33 /* SocialPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C11C2EB3470100258D33 /* SocialPost.swift */; };
+		3F00C16F2EB3470100258D33 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1322EB3470100258D33 /* ContentView.swift */; };
+		3F00C1702EB3470100258D33 /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1352EB3470100258D33 /* NotificationsView.swift */; };
+		3F00C1712EB3470100258D33 /* sarapioUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1462EB3470100258D33 /* sarapioUITests.swift */; };
+		3F00C1722EB3470100258D33 /* BottomBarState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1212EB3470100258D33 /* BottomBarState.swift */; };
+		3F00C1732EB3470100258D33 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C1182EB3470100258D33 /* Theme.swift */; };
+		3F00C1742EB3470100258D33 /* PhotoSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C12A2EB3470100258D33 /* PhotoSection.swift */; };
+		3F00C1752EB3470100258D33 /* Ingredient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F00C11A2EB3470100258D33 /* Ingredient.swift */; };
+		3F00C1762EB3470100258D33 /* chicken-adobo.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3F00C13F2EB3470100258D33 /* chicken-adobo.jpg */; };
+		3F00C1772EB3470100258D33 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 3F00C14B2EB3470100258D33 /* README.md */; };
+		3F00C1782EB3470100258D33 /* veggie.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3F00C1422EB3470100258D33 /* veggie.jpg */; };
+		3F00C1792EB3470100258D33 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3F00C11F2EB3470100258D33 /* Preview Assets.xcassets */; };
+		3F00C17A2EB3470100258D33 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3F00C13E2EB3470100258D33 /* Assets.xcassets */; };
+		3F00C17B2EB3470100258D33 /* shrimp.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3F00C1412EB3470100258D33 /* shrimp.jpg */; };
+		3F00C1EF2EB35DE500258D33 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 3F00C1EE2EB35DE500258D33 /* Supabase */; };
+		3F00C1F12EB35E0900258D33 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 3F00C1F02EB35E0900258D33 /* Auth */; };
+		3F00C1F32EB35E0900258D33 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 3F00C1F22EB35E0900258D33 /* Functions */; };
+		3F00C1F52EB35E0900258D33 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 3F00C1F42EB35E0900258D33 /* PostgREST */; };
+		3F00C1F72EB35E0900258D33 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 3F00C1F62EB35E0900258D33 /* Realtime */; };
+		3F00C1F92EB35E0900258D33 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 3F00C1F82EB35E0900258D33 /* Storage */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		3F00C1032EB346EF00258D33 /* Sarapio.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sarapio.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3F00C1132EB3470100258D33 /* RecipeStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeStore.swift; sourceTree = "<group>"; };
+		3F00C1142EB3470100258D33 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
+		3F00C1152EB3470100258D33 /* SessionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionManager.swift; sourceTree = "<group>"; };
+		3F00C1162EB3470100258D33 /* SocialFeedStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialFeedStore.swift; sourceTree = "<group>"; };
+		3F00C1172EB3470100258D33 /* SocialSampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialSampleData.swift; sourceTree = "<group>"; };
+		3F00C1182EB3470100258D33 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		3F00C11A2EB3470100258D33 /* Ingredient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ingredient.swift; sourceTree = "<group>"; };
+		3F00C11B2EB3470100258D33 /* Recipe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recipe.swift; sourceTree = "<group>"; };
+		3F00C11C2EB3470100258D33 /* SocialPost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialPost.swift; sourceTree = "<group>"; };
+		3F00C11D2EB3470100258D33 /* StepItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepItem.swift; sourceTree = "<group>"; };
+		3F00C11F2EB3470100258D33 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		3F00C1212EB3470100258D33 /* BottomBarState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomBarState.swift; sourceTree = "<group>"; };
+		3F00C1222EB3470100258D33 /* ImageResolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageResolver.swift; sourceTree = "<group>"; };
+		3F00C1232EB3470100258D33 /* RecipeNarrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeNarrator.swift; sourceTree = "<group>"; };
+		3F00C1252EB3470100258D33 /* Chip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Chip.swift; sourceTree = "<group>"; };
+		3F00C1262EB3470100258D33 /* Tag.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Tag.swift; sourceTree = "<group>"; };
+		3F00C1282EB3470100258D33 /* BasicInfoSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BasicInfoSection.swift; sourceTree = "<group>"; };
+		3F00C1292EB3470100258D33 /* IngredientsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngredientsSection.swift; sourceTree = "<group>"; };
+		3F00C12A2EB3470100258D33 /* PhotoSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoSection.swift; sourceTree = "<group>"; };
+		3F00C12B2EB3470100258D33 /* SaveSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SaveSection.swift; sourceTree = "<group>"; };
+		3F00C12C2EB3470100258D33 /* StepsSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepsSection.swift; sourceTree = "<group>"; };
+		3F00C12E2EB3470100258D33 /* AddHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddHubView.swift; sourceTree = "<group>"; };
+		3F00C12F2EB3470100258D33 /* AddRecipeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddRecipeView.swift; sourceTree = "<group>"; };
+		3F00C1302EB3470100258D33 /* AddSocialPostView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddSocialPostView.swift; sourceTree = "<group>"; };
+		3F00C1312EB3470100258D33 /* AuthFlowView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthFlowView.swift; sourceTree = "<group>"; };
+		3F00C1322EB3470100258D33 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		3F00C1332EB3470100258D33 /* HomeTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeTabView.swift; sourceTree = "<group>"; };
+		3F00C1342EB3470100258D33 /* MessagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesView.swift; sourceTree = "<group>"; };
+		3F00C1352EB3470100258D33 /* NotificationsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationsView.swift; sourceTree = "<group>"; };
+		3F00C1362EB3470100258D33 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		3F00C1372EB3470100258D33 /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
+		3F00C1382EB3470100258D33 /* RecipeRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeRow.swift; sourceTree = "<group>"; };
+		3F00C1392EB3470100258D33 /* RecipesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipesView.swift; sourceTree = "<group>"; };
+		3F00C13A2EB3470100258D33 /* SocialFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SocialFeedView.swift; sourceTree = "<group>"; };
+		3F00C13B2EB3470100258D33 /* Untitled.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Untitled.swift; sourceTree = "<group>"; };
+		3F00C13C2EB3470100258D33 /* View+Placeholder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Placeholder.swift"; sourceTree = "<group>"; };
+		3F00C13E2EB3470100258D33 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		3F00C13F2EB3470100258D33 /* chicken-adobo.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = "chicken-adobo.jpg"; sourceTree = "<group>"; };
+		3F00C1402EB3470100258D33 /* sarapioApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = sarapioApp.swift; sourceTree = "<group>"; };
+		3F00C1412EB3470100258D33 /* shrimp.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = shrimp.jpg; sourceTree = "<group>"; };
+		3F00C1422EB3470100258D33 /* veggie.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = veggie.jpg; sourceTree = "<group>"; };
+		3F00C1442EB3470100258D33 /* sarapioTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = sarapioTests.swift; sourceTree = "<group>"; };
+		3F00C1462EB3470100258D33 /* sarapioUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = sarapioUITests.swift; sourceTree = "<group>"; };
+		3F00C1472EB3470100258D33 /* sarapioUITestsLaunchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = sarapioUITestsLaunchTests.swift; sourceTree = "<group>"; };
+		3F00C1492EB3470100258D33 /* sarapio.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = sarapio.xcodeproj; sourceTree = "<group>"; };
+		3F00C14B2EB3470100258D33 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		3F00C1002EB346EF00258D33 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3F00C1F92EB35E0900258D33 /* Storage in Frameworks */,
+				3F00C1F52EB35E0900258D33 /* PostgREST in Frameworks */,
+				3F00C1F32EB35E0900258D33 /* Functions in Frameworks */,
+				3F00C1F12EB35E0900258D33 /* Auth in Frameworks */,
+				3F00C1F72EB35E0900258D33 /* Realtime in Frameworks */,
+				3F00C1EF2EB35DE500258D33 /* Supabase in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3F00C0FA2EB346EF00258D33 = {
+			isa = PBXGroup;
+			children = (
+				3F00C14C2EB3470100258D33 /* Sarap.io */,
+				3F00C1ED2EB35DE500258D33 /* Frameworks */,
+				3F00C1042EB346EF00258D33 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3F00C1042EB346EF00258D33 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C1032EB346EF00258D33 /* Sarapio.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3F00C1192EB3470100258D33 /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C1132EB3470100258D33 /* RecipeStore.swift */,
+				3F00C1142EB3470100258D33 /* SampleData.swift */,
+				3F00C1152EB3470100258D33 /* SessionManager.swift */,
+				3F00C1162EB3470100258D33 /* SocialFeedStore.swift */,
+				3F00C1172EB3470100258D33 /* SocialSampleData.swift */,
+				3F00C1182EB3470100258D33 /* Theme.swift */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		3F00C11E2EB3470100258D33 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C11A2EB3470100258D33 /* Ingredient.swift */,
+				3F00C11B2EB3470100258D33 /* Recipe.swift */,
+				3F00C11C2EB3470100258D33 /* SocialPost.swift */,
+				3F00C11D2EB3470100258D33 /* StepItem.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		3F00C1202EB3470100258D33 /* Preview Content */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C11F2EB3470100258D33 /* Preview Assets.xcassets */,
+			);
+			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		3F00C1242EB3470100258D33 /* Utils */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C1212EB3470100258D33 /* BottomBarState.swift */,
+				3F00C1222EB3470100258D33 /* ImageResolver.swift */,
+				3F00C1232EB3470100258D33 /* RecipeNarrator.swift */,
+			);
+			path = Utils;
+			sourceTree = "<group>";
+		};
+		3F00C1272EB3470100258D33 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C1252EB3470100258D33 /* Chip.swift */,
+				3F00C1262EB3470100258D33 /* Tag.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		3F00C12D2EB3470100258D33 /* Sections */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C1282EB3470100258D33 /* BasicInfoSection.swift */,
+				3F00C1292EB3470100258D33 /* IngredientsSection.swift */,
+				3F00C12A2EB3470100258D33 /* PhotoSection.swift */,
+				3F00C12B2EB3470100258D33 /* SaveSection.swift */,
+				3F00C12C2EB3470100258D33 /* StepsSection.swift */,
+			);
+			path = Sections;
+			sourceTree = "<group>";
+		};
+		3F00C13D2EB3470100258D33 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C1272EB3470100258D33 /* Components */,
+				3F00C12D2EB3470100258D33 /* Sections */,
+				3F00C12E2EB3470100258D33 /* AddHubView.swift */,
+				3F00C12F2EB3470100258D33 /* AddRecipeView.swift */,
+				3F00C1302EB3470100258D33 /* AddSocialPostView.swift */,
+				3F00C1312EB3470100258D33 /* AuthFlowView.swift */,
+				3F00C1322EB3470100258D33 /* ContentView.swift */,
+				3F00C1332EB3470100258D33 /* HomeTabView.swift */,
+				3F00C1342EB3470100258D33 /* MessagesView.swift */,
+				3F00C1352EB3470100258D33 /* NotificationsView.swift */,
+				3F00C1362EB3470100258D33 /* ProfileView.swift */,
+				3F00C1372EB3470100258D33 /* RecipeDetailView.swift */,
+				3F00C1382EB3470100258D33 /* RecipeRow.swift */,
+				3F00C1392EB3470100258D33 /* RecipesView.swift */,
+				3F00C13A2EB3470100258D33 /* SocialFeedView.swift */,
+				3F00C13B2EB3470100258D33 /* Untitled.swift */,
+				3F00C13C2EB3470100258D33 /* View+Placeholder.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		3F00C1432EB3470100258D33 /* sarapio */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C1192EB3470100258D33 /* Data */,
+				3F00C11E2EB3470100258D33 /* Models */,
+				3F00C1202EB3470100258D33 /* Preview Content */,
+				3F00C1242EB3470100258D33 /* Utils */,
+				3F00C13D2EB3470100258D33 /* Views */,
+				3F00C13E2EB3470100258D33 /* Assets.xcassets */,
+				3F00C13F2EB3470100258D33 /* chicken-adobo.jpg */,
+				3F00C1402EB3470100258D33 /* sarapioApp.swift */,
+				3F00C1412EB3470100258D33 /* shrimp.jpg */,
+				3F00C1422EB3470100258D33 /* veggie.jpg */,
+			);
+			path = sarapio;
+			sourceTree = "<group>";
+		};
+		3F00C1452EB3470100258D33 /* sarapioTests */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C1442EB3470100258D33 /* sarapioTests.swift */,
+			);
+			path = sarapioTests;
+			sourceTree = "<group>";
+		};
+		3F00C1482EB3470100258D33 /* sarapioUITests */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C1462EB3470100258D33 /* sarapioUITests.swift */,
+				3F00C1472EB3470100258D33 /* sarapioUITestsLaunchTests.swift */,
+			);
+			path = sarapioUITests;
+			sourceTree = "<group>";
+		};
+		3F00C14A2EB3470100258D33 /* sarapio */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C1432EB3470100258D33 /* sarapio */,
+				3F00C1452EB3470100258D33 /* sarapioTests */,
+				3F00C1482EB3470100258D33 /* sarapioUITests */,
+				3F00C1492EB3470100258D33 /* sarapio.xcodeproj */,
+			);
+			path = sarapio;
+			sourceTree = "<group>";
+		};
+		3F00C14C2EB3470100258D33 /* Sarap.io */ = {
+			isa = PBXGroup;
+			children = (
+				3F00C14A2EB3470100258D33 /* sarapio */,
+				3F00C14B2EB3470100258D33 /* README.md */,
+			);
+			path = Sarap.io;
+			sourceTree = "<group>";
+		};
+		3F00C14D2EB3470100258D33 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		3F00C1ED2EB35DE500258D33 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		3F00C1022EB346EF00258D33 /* Sarapio */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 3F00C1102EB346F100258D33 /* Build configuration list for PBXNativeTarget "Sarapio" */;
+			buildPhases = (
+				3F00C0FF2EB346EF00258D33 /* Sources */,
+				3F00C1002EB346EF00258D33 /* Frameworks */,
+				3F00C1012EB346EF00258D33 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Sarapio;
+			packageProductDependencies = (
+				3F00C1EE2EB35DE500258D33 /* Supabase */,
+				3F00C1F02EB35E0900258D33 /* Auth */,
+				3F00C1F22EB35E0900258D33 /* Functions */,
+				3F00C1F42EB35E0900258D33 /* PostgREST */,
+				3F00C1F62EB35E0900258D33 /* Realtime */,
+				3F00C1F82EB35E0900258D33 /* Storage */,
+			);
+			productName = Sarapio;
+			productReference = 3F00C1032EB346EF00258D33 /* Sarapio.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3F00C0FB2EB346EF00258D33 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1640;
+				LastUpgradeCheck = 1640;
+				TargetAttributes = {
+					3F00C1022EB346EF00258D33 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+				};
+			};
+			buildConfigurationList = 3F00C0FE2EB346EF00258D33 /* Build configuration list for PBXProject "Sarapio" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 3F00C0FA2EB346EF00258D33;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				3F00C1EC2EB35DD100258D33 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3F00C1042EB346EF00258D33 /* Products */;
+			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 3F00C14D2EB3470100258D33 /* Products */;
+					ProjectRef = 3F00C1492EB3470100258D33 /* sarapio.xcodeproj */;
+				},
+			);
+			projectRoot = "";
+			targets = (
+				3F00C1022EB346EF00258D33 /* Sarapio */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3F00C1012EB346EF00258D33 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3F00C1762EB3470100258D33 /* chicken-adobo.jpg in Resources */,
+				3F00C1772EB3470100258D33 /* README.md in Resources */,
+				3F00C1782EB3470100258D33 /* veggie.jpg in Resources */,
+				3F00C1792EB3470100258D33 /* Preview Assets.xcassets in Resources */,
+				3F00C17A2EB3470100258D33 /* Assets.xcassets in Resources */,
+				3F00C17B2EB3470100258D33 /* shrimp.jpg in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		3F00C0FF2EB346EF00258D33 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3F00C14F2EB3470100258D33 /* sarapioTests.swift in Sources */,
+				3F00C1502EB3470100258D33 /* RecipesView.swift in Sources */,
+				3F00C1512EB3470100258D33 /* Tag.swift in Sources */,
+				3F00C1522EB3470100258D33 /* BasicInfoSection.swift in Sources */,
+				3F00C1532EB3470100258D33 /* SaveSection.swift in Sources */,
+				3F00C1542EB3470100258D33 /* AddSocialPostView.swift in Sources */,
+				3F00C1552EB3470100258D33 /* RecipeRow.swift in Sources */,
+				3F00C1562EB3470100258D33 /* IngredientsSection.swift in Sources */,
+				3F00C1572EB3470100258D33 /* View+Placeholder.swift in Sources */,
+				3F00C1582EB3470100258D33 /* ProfileView.swift in Sources */,
+				3F00C1592EB3470100258D33 /* AddRecipeView.swift in Sources */,
+				3F00C15A2EB3470100258D33 /* SocialFeedStore.swift in Sources */,
+				3F00C15B2EB3470100258D33 /* Chip.swift in Sources */,
+				3F00C15C2EB3470100258D33 /* SocialSampleData.swift in Sources */,
+				3F00C15D2EB3470100258D33 /* sarapioUITestsLaunchTests.swift in Sources */,
+				3F00C15E2EB3470100258D33 /* RecipeDetailView.swift in Sources */,
+				3F00C15F2EB3470100258D33 /* AuthFlowView.swift in Sources */,
+				3F00C1602EB3470100258D33 /* RecipeNarrator.swift in Sources */,
+				3F00C1612EB3470100258D33 /* HomeTabView.swift in Sources */,
+				3F00C1622EB3470100258D33 /* SessionManager.swift in Sources */,
+				3F00C1632EB3470100258D33 /* ImageResolver.swift in Sources */,
+				3F00C1642EB3470100258D33 /* RecipeStore.swift in Sources */,
+				3F00C1652EB3470100258D33 /* SampleData.swift in Sources */,
+				3F00C1662EB3470100258D33 /* sarapioApp.swift in Sources */,
+				3F00C1672EB3470100258D33 /* Untitled.swift in Sources */,
+				3F00C1682EB3470100258D33 /* AddHubView.swift in Sources */,
+				3F00C1692EB3470100258D33 /* MessagesView.swift in Sources */,
+				3F00C16A2EB3470100258D33 /* Recipe.swift in Sources */,
+				3F00C16B2EB3470100258D33 /* StepItem.swift in Sources */,
+				3F00C16C2EB3470100258D33 /* StepsSection.swift in Sources */,
+				3F00C16D2EB3470100258D33 /* SocialFeedView.swift in Sources */,
+				3F00C16E2EB3470100258D33 /* SocialPost.swift in Sources */,
+				3F00C16F2EB3470100258D33 /* ContentView.swift in Sources */,
+				3F00C1702EB3470100258D33 /* NotificationsView.swift in Sources */,
+				3F00C1712EB3470100258D33 /* sarapioUITests.swift in Sources */,
+				3F00C1722EB3470100258D33 /* BottomBarState.swift in Sources */,
+				3F00C1732EB3470100258D33 /* Theme.swift in Sources */,
+				3F00C1742EB3470100258D33 /* PhotoSection.swift in Sources */,
+				3F00C1752EB3470100258D33 /* Ingredient.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		3F00C10E2EB346F100258D33 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		3F00C10F2EB346F100258D33 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.5;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		3F00C1112EB346F100258D33 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = mseuf.edu.ph.Sarapio;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		3F00C1122EB346F100258D33 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = mseuf.edu.ph.Sarapio;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		3F00C0FE2EB346EF00258D33 /* Build configuration list for PBXProject "Sarapio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3F00C10E2EB346F100258D33 /* Debug */,
+				3F00C10F2EB346F100258D33 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		3F00C1102EB346F100258D33 /* Build configuration list for PBXNativeTarget "Sarapio" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				3F00C1112EB346F100258D33 /* Debug */,
+				3F00C1122EB346F100258D33 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		3F00C1EC2EB35DD100258D33 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase-community/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		3F00C1EE2EB35DE500258D33 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F00C1EC2EB35DD100258D33 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+		3F00C1F02EB35E0900258D33 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F00C1EC2EB35DD100258D33 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		3F00C1F22EB35E0900258D33 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F00C1EC2EB35DD100258D33 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		3F00C1F42EB35E0900258D33 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F00C1EC2EB35DD100258D33 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		3F00C1F62EB35E0900258D33 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F00C1EC2EB35DD100258D33 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		3F00C1F82EB35E0900258D33 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 3F00C1EC2EB35DD100258D33 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = 3F00C0FB2EB346EF00258D33 /* Project object */;
+}
