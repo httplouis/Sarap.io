@@ -3,34 +3,70 @@ import Foundation
 
 @MainActor
 final class RecipeStore: ObservableObject {
-    @Published var recipes: [Recipe] = SampleData.recipes
+    @Published var recipes: [Recipe] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    
+    private let repo = RecipeRepo()
+    
+    init() {
+        // Sync recipes from repo
+        Task {
+            await loadRecipes()
+        }
+    }
+    
+    // MARK: - Database Integration
+    
+    func loadRecipes() async {
+        isLoading = true
+        await repo.fetchAll()
+        recipes = repo.recipes
+        isLoading = false
+    }
 
-    init() {}
+    // MARK: - Mutations (sync with database)
 
-    // MARK: - Local mutations (UI calls these)
-
-    func add(_ recipe: Recipe, regenerateIdentity: Bool = false) {
+    func add(_ recipe: Recipe, regenerateIdentity: Bool = false) async {
         var draft = recipe
         if regenerateIdentity { draft.regenerateIdentity() }
-        recipes.insert(draft, at: 0)
+        
+        do {
+            let created = try await repo.add(draft)
+            await loadRecipes()
+        } catch {
+            errorMessage = error.localizedDescription
+            print("❌ Failed to add recipe:", error)
+        }
     }
 
-    func delete(_ recipe: Recipe) {
-        recipes.removeAll { $0.id == recipe.id }
+    func delete(_ recipe: Recipe) async {
+        await repo.delete(recipe.id)
+        await loadRecipes()
     }
 
-    func toggleFavorite(_ recipe: Recipe) {
-        guard let index = recipes.firstIndex(where: { $0.id == recipe.id }) else { return }
-        recipes[index].isFavorite.toggle()
+    func toggleFavorite(_ recipe: Recipe) async {
+        await repo.toggleFavorite(recipe)
+        await loadRecipes()
     }
 
-    func update(_ recipe: Recipe, with updated: Recipe) {
-        guard let index = recipes.firstIndex(where: { $0.id == recipe.id }) else { return }
-        recipes[index] = updated
+    func update(_ recipe: Recipe, with updated: Recipe) async {
+        var updatedRecipe = updated
+        updatedRecipe.id = recipe.id
+        await repo.update(updatedRecipe)
+        await loadRecipes()
     }
 
     func recipes(for user: AppUser?) -> [Recipe] {
         guard let user else { return recipes }
-        return recipes.filter { $0.authorEmail == user.email }
+        return recipes.filter { recipe in
+            recipe.user_id == user.id || recipe.authorEmail == user.email
+        }
+    }
+    
+    // MARK: - Image Upload
+    
+    func uploadImage(_ imageData: Data, recipeId: UUID) async throws -> String {
+        return try await repo.uploadImage(imageData, recipeId: recipeId)
     }
 }

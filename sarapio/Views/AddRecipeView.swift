@@ -65,7 +65,7 @@ struct AddRecipeView: View {
                 // MARK: - Save Button
                 SaveSection(
                     editing: editing,
-                    isDisabled: !isFormValid,
+                    isDisabled: !isFormValid || isSaving,
                     saveAction: save
                 )
             }
@@ -136,6 +136,8 @@ struct AddRecipeView: View {
     }
 
     // MARK: - Save
+    @State private var isSaving = false
+    
     private func save() {
         guard isFormValid else {
             validationMessage = "Please add a title and at least one ingredient."
@@ -143,31 +145,50 @@ struct AddRecipeView: View {
             return
         }
 
-        let mins = Int(minutes) ?? 0
-        let serv = Int(servings) ?? 1
+        Task {
+            isSaving = true
+            defer { isSaving = false }
+            
+            let mins = Int(minutes) ?? 0
+            let serv = Int(servings) ?? 1
 
-        var newRecipe = Recipe(
-            title: title.isEmpty ? "Untitled" : title,
-            minutes: mins,
-            servings: serv,
-            cuisine: cuisine.isEmpty ? nil : cuisine,
-            region: region.isEmpty ? nil : region,
-            tags: [],
-            ingredients: ingredients,
-            steps: steps,
-            isFavorite: editing?.isFavorite ?? false,
-            imageData: pickedImageData ?? editing?.imageData,
-            imageName: nil
-        )
+            var newRecipe = Recipe(
+                title: title.isEmpty ? "Untitled" : title,
+                minutes: mins,
+                servings: serv,
+                cuisine: cuisine.isEmpty ? nil : cuisine,
+                region: region.isEmpty ? nil : region,
+                tags: [],
+                ingredients: ingredients,
+                steps: steps,
+                isFavorite: editing?.isFavorite ?? false,
+                imageData: pickedImageData ?? editing?.imageData,
+                imageName: nil,
+                user_id: session.currentUser?.id
+            )
 
-        newRecipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+            newRecipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
 
-        if let old = editing {
-            newRecipe.id = old.id
-            store.update(old, with: newRecipe)
-        } else {
-            store.add(newRecipe)
+            // Upload image if available
+            if let imageData = pickedImageData ?? editing?.imageData {
+                do {
+                    let photoUrl = try await store.uploadImage(imageData, recipeId: newRecipe.id)
+                    newRecipe.photo_url = photoUrl
+                } catch {
+                    print("⚠️ Image upload failed, continuing without image:", error)
+                }
+            }
+
+            if let old = editing {
+                newRecipe.id = old.id
+                await store.update(old, with: newRecipe)
+            } else {
+                await store.add(newRecipe, regenerateIdentity: true)
+            }
+            
+            await MainActor.run {
+                dismiss()
+            }
         }
-        dismiss()
     }
 }

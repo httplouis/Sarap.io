@@ -1,51 +1,135 @@
 // sarapio/Repositories/UserRepo.swift
 import Foundation
+import Supabase
 
-/// Local user repository that *reads* from SessionManager and uses its
-/// public APIs to perform updates. No direct writes to `storedUsers`.
 @MainActor
-final class UserRepo {
+final class UserRepo: ObservableObject {
     static let shared = UserRepo()
+    private let client = SupabaseClientManager.shared
     private init() {}
 
-    // Ensure a user record exists (no-op for local demo; Supabase version can implement this).
+    // Ensure a user record exists in Supabase
     func ensureUserExists(session: SessionManager, email: String) async {
-        // Intentionally left as a no-op in the local implementation.
+        guard let currentUser = session.currentUser else { return }
+        
+        do {
+            // Check if user exists
+            let response = try await client
+                .database
+                .from("users")
+                .select()
+                .eq("email", value: email)
+                .single()
+                .execute()
+            
+            // User exists, update if needed
+            if response.data != nil {
+                try await updateUser(user: currentUser)
+            }
+        } catch {
+            // User doesn't exist, create it
+            do {
+                try await createUser(user: currentUser)
+            } catch {
+                print("⚠️ Failed to create user in Supabase:", error.localizedDescription)
+            }
+        }
+    }
+    
+    private func createUser(user: AppUser) async throws {
+        let userDict: [String: Any] = [
+            "id": user.id.uuidString,
+            "email": user.email,
+            "name": user.name,
+            "avatar_seed": user.avatarSeed
+        ]
+        
+        _ = try await client
+            .database
+            .from("users")
+            .insert([userDict])
+            .execute()
+    }
+    
+    private func updateUser(user: AppUser) async throws {
+        let userDict: [String: Any] = [
+            "name": user.name,
+            "avatar_seed": user.avatarSeed
+        ]
+        
+        _ = try await client
+            .database
+            .from("users")
+            .update(userDict)
+            .eq("id", value: user.id.uuidString)
+            .execute()
     }
 
-    // Fetch a user by email from SessionManager's saved users or currentUser.
-    func fetchUser(session: SessionManager, email: String) async throws -> AppUser {
-        if let creds = session.storedUsers[email] {
-            return creds.user
+    // Fetch a user by email from Supabase
+    func fetchUser(email: String) async throws -> AppUser {
+        let response = try await client
+            .database
+            .from("users")
+            .select()
+            .eq("email", value: email)
+            .single()
+            .execute()
+        
+        if let data = response.data,
+           let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            let id = UUID(uuidString: json["id"] as? String ?? "") ?? UUID()
+            let name = json["name"] as? String ?? "Unknown"
+            let email = json["email"] as? String ?? ""
+            let avatarSeed = json["avatar_seed"] as? String ?? "person.fill"
+            
+            return AppUser(
+                id: id,
+                name: name,
+                email: email,
+                avatarSeed: avatarSeed,
+                followers: 0,
+                following: 0
+            )
         }
-        if let me = session.currentUser, me.email.lowercased() == email.lowercased() {
-            return me
-        }
+        
         throw NSError(domain: "UserRepo", code: 404, userInfo: [NSLocalizedDescriptionKey: "User not found"])
     }
 
-    // Update profile name via SessionManager so UI remains in sync.
+    // Update profile name
     func updateName(session: SessionManager, newName: String) async throws {
+        guard let user = session.currentUser else { return }
+        
         session.updateProfile(name: newName)
+        
+        // Sync to Supabase
+        do {
+            _ = try await client
+                .database
+                .from("users")
+                .update(["name": newName])
+                .eq("id", value: user.id.uuidString)
+                .execute()
+        } catch {
+            print("⚠️ Failed to update name in Supabase:", error.localizedDescription)
+        }
     }
 
-    // Update avatar via SessionManager.
+    // Update avatar
     func updateAvatar(session: SessionManager, seed: String) async throws {
+        guard let user = session.currentUser else { return }
+        
         session.updateAvatar(seed: seed)
-    }
-
-    // Followers/following: no direct mutation path without new SessionManager APIs.
-    // For now, signal that it's unsupported in the local-only implementation.
-    enum Unsupported: LocalizedError {
-        case notImplemented
-        var errorDescription: String? { "Operation not implemented in local UserRepo." }
-    }
-
-    func setFollowers(session: SessionManager, email: String, followers: Int) async throws {
-        throw Unsupported.notImplemented
-    }
-
-    func setFollowing(session: SessionManager, email: String, following: Int) async throws {
-        throw Unsupported.notImplemented
+        
+        // Sync to Supabase
+        do {
+            _ = try await client
+                .database
+                .from("users")
+                .update(["avatar_seed": seed])
+                .eq("id", value: user.id.uuidString)
+                .execute()
+        } catch {
+            print("⚠️ Failed to update avatar in Supabase:", error.localizedDescription)
+        }
     }
 }

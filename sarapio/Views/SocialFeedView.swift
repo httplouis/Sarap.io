@@ -25,13 +25,21 @@ struct SocialFeedView: View {
                         SocialPostCard(
                             post: post,
                             commentText: binding(for: post),
-                            onLike: { feedStore.toggleLike(for: post) },
+                            onLike: {
+                                Task { await feedStore.toggleLike(for: post) }
+                            },
                             onSave: { feedStore.toggleSave(for: post) },
                             onCopy: { copyToMyRecipes(post.recipe) },
-                            onRate: { feedStore.setRating($0, for: post) },
+                            onRate: { rating in
+                                Task { await feedStore.setRating(rating, for: post) }
+                            },
                             onComment: { text in
-                                feedStore.addComment(text, to: post)
-                                commentDrafts[post.id] = ""
+                                Task {
+                                    await feedStore.addComment(text, to: post)
+                                    await MainActor.run {
+                                        commentDrafts[post.id] = ""
+                                    }
+                                }
                             },
                             onShare: {}
                         )
@@ -66,14 +74,24 @@ struct SocialFeedView: View {
             .sheet(isPresented: $showMessages) { NavigationStack { MessagesView() } }
             .sheet(isPresented: $showAddPost) {
                 AddSocialPostView { post in
-                    var updated = post
-                    updated.recipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
-                    feedStore.append(updated)
+                    Task {
+                        var updated = post
+                        updated.recipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+                        await feedStore.append(updated)
+                    }
                 }
                 .environmentObject(store)
                 .environmentObject(session)
             }
-            .onAppear { bottomBar.reset() }
+            .onAppear {
+                bottomBar.reset()
+                Task {
+                    await feedStore.loadPosts()
+                }
+            }
+            .refreshable {
+                await feedStore.loadPosts()
+            }
         }
         .safeAreaInset(edge: .top) { Color.clear.frame(height: 0) }
     }
@@ -87,10 +105,13 @@ struct SocialFeedView: View {
     }
 
     private func copyToMyRecipes(_ recipe: Recipe) {
-        var duplicate = recipe
-        duplicate.regenerateIdentity()
-        duplicate.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
-        store.add(duplicate)
+        Task {
+            var duplicate = recipe
+            duplicate.regenerateIdentity()
+            duplicate.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+            duplicate.user_id = session.currentUser?.id
+            await store.add(duplicate, regenerateIdentity: true)
+        }
     }
 }
 

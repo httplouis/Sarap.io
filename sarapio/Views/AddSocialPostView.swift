@@ -92,24 +92,28 @@ struct AddSocialPostView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Share") {
-                        let recipe = selectedRecipe ?? SampleData.recipes.randomElement() ?? Recipe(title: "Untitled", minutes: 0, servings: 0, cuisine: nil, region: nil)
-                        var authoredRecipe = recipe
-                        authoredRecipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
-                        let handle = session.currentUser?.email.split(separator: "@").first.map(String.init) ?? "guest"
-                        var post = SocialPost(
-                            id: UUID(),
-                            user: handle,
-                            avatar: nil,
-                            caption: caption,
-                            recipe: authoredRecipe,
-                            likes: Int.random(in: 2...20),
-                            comments: ["🔥 Can't wait to try this!"],
-                            rating: 0
-                        )
-                        post.userRating = 0
-                        onSave(post)
-                        dismiss()
-                        onDismiss?()
+                        Task {
+                            let recipe = selectedRecipe ?? store.recipes.first ?? Recipe(title: "Untitled", minutes: 0, servings: 0, cuisine: nil, region: nil)
+                            var authoredRecipe = recipe
+                            authoredRecipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+                            let handle = session.currentUser?.email.split(separator: "@").first.map(String.init) ?? "guest"
+                            var post = SocialPost(
+                                id: UUID(),
+                                user: handle,
+                                avatar: nil,
+                                caption: caption,
+                                recipe: authoredRecipe,
+                                likes: 0,
+                                comments: [],
+                                rating: 0
+                            )
+                            post.userRating = 0
+                            onSave(post)
+                            await MainActor.run {
+                                dismiss()
+                                onDismiss?()
+                            }
+                        }
                     }
                     .disabled(caption.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }

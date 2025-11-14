@@ -51,7 +51,17 @@ struct RecipesView: View {
                     header
                     searchBar
                     filterSection
-                    recipeList
+                    
+                    if store.isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .padding()
+                            Spacer()
+                        }
+                    } else {
+                        recipeList
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 24)
@@ -59,7 +69,15 @@ struct RecipesView: View {
             }
             .background(Theme.bg)
             .onPreferenceChange(ScrollOffsetPreferenceKey.self) { bottomBar.handleScroll(offset: $0) }
-            .onAppear { bottomBar.reset() }
+            .onAppear {
+                bottomBar.reset()
+                Task {
+                    await store.loadRecipes()
+                }
+            }
+            .refreshable {
+                await store.loadRecipes()
+            }
             .navigationTitle("Recipes")
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Theme.bg, for: .navigationBar)
@@ -155,10 +173,14 @@ struct RecipesView: View {
                 }
                 .buttonStyle(.plain)
                 .contextMenu {
-                    Button(role: .destructive) { store.delete(r) } label: {
+                    Button(role: .destructive) {
+                        Task { await store.delete(r) }
+                    } label: {
                         Label("Delete", systemImage: "trash")
                     }
-                    Button { store.toggleFavorite(r) } label: {
+                    Button {
+                        Task { await store.toggleFavorite(r) }
+                    } label: {
                         Label(
                             r.isFavorite ? "Unfavorite" : "Favorite",
                             systemImage: r.isFavorite ? "heart.slash" : "heart"

@@ -84,15 +84,21 @@ struct RecipeDetailView: View {
                 Button(role: .destructive) { showDeleteConfirm = true } label: {
                     Image(systemName: "trash")
                 }
-                Button { store.toggleFavorite(recipe) } label: {
+                Button {
+                    Task { await store.toggleFavorite(recipe) }
+                } label: {
                     Image(systemName: recipe.isFavorite ? "heart.fill" : "heart")
                 }
             }
         }
         .confirmationDialog("Delete this recipe?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
-                store.delete(recipe)
-                dismiss()   // ✅ balik agad sa home/list
+                Task {
+                    await store.delete(recipe)
+                    await MainActor.run {
+                        dismiss()   // ✅ balik agad sa home/list
+                    }
+                }
             }
             Button("Cancel", role: .cancel) {}
         }
