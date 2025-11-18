@@ -1,8 +1,10 @@
 import SwiftUI
 
 struct AddHubView: View {
+    @EnvironmentObject private var shoppingList: ShoppingListStore
     @State private var showAddRecipe = false
     @State private var showAddPost = false
+    @State private var showShoppingList = false
 
     var body: some View {
         ScrollView {
@@ -14,11 +16,20 @@ struct AddHubView: View {
                 HeroCard(title: "Create a Post", subtitle: "Tell the community what you're cooking", icon: "sparkles") {
                     showAddPost = true
                 }
+                
+                NavigationLink {
+                    ShoppingListView()
+                } label: {
+                    HeroCard(title: "Shopping List", subtitle: "\(shoppingList.totalCount) items • \(shoppingList.checkedCount) checked", icon: "cart.fill") {
+                        showShoppingList = true
+                    }
+                }
+                .buttonStyle(.plain)
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Tips for Finals")
+                    Text("Quick Actions")
                         .font(Theme.titleM())
-                    Text("We prepared the flow so you can hook it up to Supabase, Firebase, or SwiftData later. Every action already has placeholders for API calls.")
+                    Text("Create recipes, share posts, and manage your shopping list all in one place.")
                         .font(Theme.body())
                         .foregroundStyle(Theme.subtext)
                         .fixedSize(horizontal: false, vertical: true)
@@ -33,6 +44,17 @@ struct AddHubView: View {
         .background(Theme.bg.ignoresSafeArea())
         .navigationTitle("Create")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink {
+                    MessagesView()
+                } label: {
+                    Image(systemName: "paperplane.fill")
+                        .font(.title3)
+                        .foregroundStyle(Theme.olive)
+                }
+            }
+        }
         .sheet(isPresented: $showAddRecipe) {
             NavigationStack { AddRecipeView() }
         }
@@ -92,7 +114,9 @@ private struct AddSocialPostViewWrapper: View {
         AddSocialPostView { post in
             var recipe = post.recipe
             recipe.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
-            store.add(recipe, regenerateIdentity: true)
+            Task {
+                await store.add(recipe, regenerateIdentity: true, userId: session.currentUser?.id)
+            }
             var updatedPost = post
             updatedPost.recipe = recipe
             feedStore.append(updatedPost)

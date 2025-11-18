@@ -103,7 +103,7 @@ struct AddSocialPostView: View {
                             caption: caption,
                             recipe: authoredRecipe,
                             likes: Int.random(in: 2...20),
-                            comments: ["🔥 Can't wait to try this!"],
+                            comments: [SocialPost.Comment(user: handle, text: "🔥 Can't wait to try this!")],
                             rating: 0
                         )
                         post.userRating = 0

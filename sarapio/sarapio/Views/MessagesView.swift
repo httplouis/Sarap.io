@@ -129,7 +129,7 @@ struct MessagesView: View {
                 .padding(.horizontal, 20)
                 .padding(.vertical, 20)
             }
-            .onChange(of: selectedConversationIndex) { _ in
+            .onChange(of: selectedConversationIndex) { _, _ in
                 if let last = selectedConversation.messages.last {
                     withAnimation(.easeInOut) {
                         proxy.scrollTo(last.id, anchor: .bottom)

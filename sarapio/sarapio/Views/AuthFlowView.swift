@@ -156,7 +156,7 @@ private struct AuthTextField: View {
     var placeholder: String
     @Binding var text: String
     var keyboard: UIKeyboardType
-    var capitalization: TextInputAutocapitalization = .none
+    var capitalization: TextInputAutocapitalization = .never
 
     var body: some View {
         HStack(spacing: 12) {

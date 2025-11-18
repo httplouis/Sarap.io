@@ -7,14 +7,16 @@ struct AppUser: Identifiable, Codable, Equatable {
     var name: String
     var email: String
     var avatarSeed: String
+    var avatarUrl: String?
     var followers: Int
     var following: Int
 
-    init(id: UUID = UUID(), name: String, email: String, avatarSeed: String = "person.fill", followers: Int = 0, following: Int = 0) {
+    init(id: UUID = UUID(), name: String, email: String, avatarSeed: String = "person.fill", avatarUrl: String? = nil, followers: Int = 0, following: Int = 0) {
         self.id = id
         self.name = name
         self.email = email
         self.avatarSeed = avatarSeed
+        self.avatarUrl = avatarUrl
         self.followers = followers
         self.following = following
     }
@@ -51,10 +53,37 @@ final class SessionManager: ObservableObject {
         var password: String
     }
 
+    private let supabase = SupabaseService.shared
+    
     init() {
         loadStoredUsers()
         seedDemoAccountIfNeeded()
         autoLoginIfAvailable()
+        Task {
+            await syncCurrentUserWithDatabase()
+        }
+    }
+    
+    private func syncCurrentUserWithDatabase() async {
+        guard let user = currentUser else { return }
+        do {
+            if let dbUser = try await supabase.fetchUser(email: user.email) {
+                // Update local user with database data (especially avatarUrl)
+                if var updated = storedUsers[user.email] {
+                    updated.user.avatarUrl = dbUser.avatarUrl
+                    storedUsers[user.email] = updated
+                    if currentUser?.email == user.email {
+                        currentUser = updated.user
+                    }
+                    persistUsers()
+                }
+            } else {
+                // User doesn't exist in database, create it
+                try await supabase.saveUser(user)
+            }
+        } catch {
+            print("Error syncing user with database: \(error.localizedDescription)")
+        }
     }
 
     func signup(name: String, email: String, password: String, confirmPassword: String, remember: Bool) throws {
@@ -116,7 +145,14 @@ final class SessionManager: ObservableObject {
 
     private func seedDemoAccountIfNeeded() {
         if storedUsers.isEmpty {
-            let demo = AppUser(name: "Chef Demo", email: "demo@sarap.io", avatarSeed: "fork.knife", followers: 248, following: 132)
+            let demo = AppUser(
+                name: "Chef Demo",
+                email: "demo@sarap.io",
+                avatarSeed: "fork.knife",
+                avatarUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
+                followers: 248,
+                following: 132
+            )
             storedUsers[demo.email] = StoredCredentials(user: demo, password: "password")
             persistUsers()
         }
@@ -150,17 +186,28 @@ final class SessionManager: ObservableObject {
             persistUsers()
             if rememberMe { persistRememberedUser(credentials) }
         }
+        // Sync to database
+        Task {
+            try? await supabase.saveUser(user)
+        }
     }
 
-    func updateAvatar(seed: String) {
+    func updateAvatar(seed: String, url: String? = nil) {
         guard var user = currentUser else { return }
         user.avatarSeed = seed
+        if let url = url {
+            user.avatarUrl = url
+        }
         currentUser = user
         if var credentials = storedUsers[user.email] {
             credentials.user = user
             storedUsers[user.email] = credentials
             persistUsers()
             if rememberMe { persistRememberedUser(credentials) }
+        }
+        // Sync to database
+        Task {
+            try? await supabase.saveUser(user)
         }
     }
 }

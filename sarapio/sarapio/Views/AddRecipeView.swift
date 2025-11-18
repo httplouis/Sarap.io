@@ -156,9 +156,13 @@ struct AddRecipeView: View {
 
         if let old = editing {
             newRecipe.id = old.id
-            store.update(old, with: newRecipe)
+            Task {
+                await store.update(old, with: newRecipe, userId: session.currentUser?.id)
+            }
         } else {
-            store.add(newRecipe)
+            Task {
+                await store.add(newRecipe, regenerateIdentity: true, userId: session.currentUser?.id)
+            }
         }
         dismiss()
     }

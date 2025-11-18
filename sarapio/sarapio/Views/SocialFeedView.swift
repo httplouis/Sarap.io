@@ -8,7 +8,6 @@ struct SocialFeedView: View {
     @EnvironmentObject private var bottomBar: BottomBarState
 
     @State private var commentDrafts: [UUID: String] = [:]
-    @State private var showMessages = false
     @State private var showAddPost = false
 
     var body: some View {
@@ -19,26 +18,44 @@ struct SocialFeedView: View {
             }
             .frame(height: 0)
 
-            LazyVStack(spacing: 24) {
-                ForEach(feedStore.posts) { post in
-                    SocialPostCard(
-                        post: post,
-                        commentText: binding(for: post),
-                        onLike: { feedStore.toggleLike(for: post) },
-                        onSave: { feedStore.toggleSave(for: post) },
-                        onCopy: { copyToMyRecipes(post.recipe) },
-                        onRate: { feedStore.setRating($0, for: post) },
-                        onComment: { text in
-                            feedStore.addComment(text, to: post)
-                            commentDrafts[post.id] = ""
-                        },
-                        onShare: { /* placeholder for Finals */ }
-                    )
+            if feedStore.posts.isEmpty {
+                emptyFeedView
+            } else {
+                LazyVStack(spacing: 24) {
+                    ForEach(feedStore.posts) { post in
+                        SocialPostCard(
+                            post: post,
+                            commentText: binding(for: post),
+                            onLike: { 
+                                feedStore.toggleLike(for: post)
+                                hapticFeedback(.light)
+                            },
+                            onSave: { 
+                                feedStore.toggleSave(for: post)
+                                hapticFeedback(.light)
+                            },
+                            onCopy: { copyToMyRecipes(post.recipe) },
+                            onRate: { feedStore.setRating($0, for: post) },
+                            onComment: { text in
+                                feedStore.addComment(text, to: post, by: session.currentUser?.name ?? "Guest")
+                                commentDrafts[post.id] = ""
+                                notificationHaptic(.success)
+                            },
+                            onShare: { 
+                                feedStore.incrementShare(for: post)
+                                shareRecipe(post.recipe)
+                                notificationHaptic(.success)
+                            }
+                        )
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 100) // Add bottom padding for nav bar
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            .padding(.bottom, 32)
+        }
+        .refreshable {
+            await refreshFeed()
         }
         .background(Theme.bg.ignoresSafeArea())
         .navigationTitle("Feed")
@@ -52,17 +69,16 @@ struct SocialFeedView: View {
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
-                Button { showMessages = true } label: {
+                NavigationLink {
+                    MessagesView()
+                } label: {
                     Image(systemName: "paperplane.fill")
-                        .font(.title2)
+                        .font(.title3)
                         .foregroundStyle(Theme.olive)
                 }
             }
         }
         .onPreferenceChange(ScrollOffsetPreferenceKey.self) { bottomBar.handleScroll(offset: $0) }
-        .sheet(isPresented: $showMessages) {
-            NavigationStack { MessagesView() }
-        }
         .sheet(isPresented: $showAddPost) {
             AddSocialPostView { post in
                 var updated = post
@@ -84,10 +100,66 @@ struct SocialFeedView: View {
     }
 
     private func copyToMyRecipes(_ recipe: Recipe) {
-        var duplicate = recipe
-        duplicate.regenerateIdentity()
-        duplicate.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
-        store.add(duplicate)
+        Task {
+            var duplicate = recipe
+            duplicate.regenerateIdentity()
+            duplicate.assignAuthor(email: session.currentUser?.email, name: session.currentUser?.name)
+            await store.add(duplicate, regenerateIdentity: false, userId: session.currentUser?.id)
+        }
+    }
+    
+    private func shareRecipe(_ recipe: Recipe) {
+        let text = "Check out this recipe: \(recipe.title) on Sarap.io!"
+        let activityVC = UIActivityViewController(activityItems: [text], applicationActivities: nil)
+        
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootVC = windowScene.windows.first?.rootViewController {
+            rootVC.present(activityVC, animated: true)
+        }
+    }
+    
+    private var emptyFeedView: some View {
+        VStack(spacing: 20) {
+            Image(systemName: "sparkles.rectangle.stack")
+                .font(.system(size: 64))
+                .foregroundStyle(Theme.subtext.opacity(0.5))
+            Text("No posts yet")
+                .font(.headline)
+                .foregroundStyle(Theme.text)
+            Text("Be the first to share a recipe with the community!")
+                .font(.footnote)
+                .foregroundStyle(Theme.subtext)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+            
+            Button {
+                showAddPost = true
+            } label: {
+                Label("Create Post", systemImage: "plus.circle.fill")
+                    .font(.subheadline)
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Theme.olive))
+                    .foregroundStyle(.white)
+            }
+            .padding(.top, 8)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 60)
+    }
+    
+    private func refreshFeed() async {
+        try? await Task.sleep(nanoseconds: 500_000_000) // Simulate refresh
+    }
+    
+    private func hapticFeedback(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.impactOccurred()
+    }
+    
+    private func notificationHaptic(_ type: UINotificationFeedbackGenerator.FeedbackType) {
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(type)
     }
 }
 
@@ -119,6 +191,7 @@ private struct SocialPostCard: View {
 
     private var header: some View {
         HStack(spacing: 12) {
+            // User avatar - using placeholder for now since we don't have user avatar URLs in posts
             Circle()
                 .fill(Theme.oliveSoft)
                 .frame(width: 44, height: 44)
@@ -127,7 +200,7 @@ private struct SocialPostCard: View {
                 Text("@\(post.user)")
                     .font(.subheadline)
                     .fontWeight(.semibold)
-                Text("Posted 2h ago")
+                Text(post.formattedDate)
                     .font(.caption2)
                     .foregroundStyle(Theme.subtext)
             }
@@ -141,21 +214,11 @@ private struct SocialPostCard: View {
 
     @ViewBuilder
     private var media: some View {
-        if let imgName = post.recipe.imageName {
-            Image(imgName)
-                .resizable()
-                .scaledToFill()
-                .frame(maxHeight: 260)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .clipped()
-        } else if let data = post.recipe.imageData, let ui = UIImage(data: data) {
-            Image(uiImage: ui)
-                .resizable()
-                .scaledToFill()
-                .frame(maxHeight: 260)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-                .clipped()
-        }
+        post.recipe.recipeImage()
+            .scaledToFill()
+            .frame(maxHeight: 260)
+            .clipShape(RoundedRectangle(cornerRadius: 20))
+            .clipped()
     }
 
     private var actions: some View {
@@ -196,10 +259,25 @@ private struct SocialPostCard: View {
 
     private var commentsPreview: some View {
         VStack(alignment: .leading, spacing: 6) {
-            ForEach(post.comments.prefix(2), id: \.self) { comment in
-                Text("💬 \(comment)")
-                    .font(.footnote)
-                    .foregroundStyle(Theme.subtext)
+            ForEach(post.comments.prefix(2)) { comment in
+                HStack(alignment: .top, spacing: 6) {
+                    Text("💬")
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("@\(comment.user)")
+                            .font(.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(Theme.olive)
+                        Text(comment.text)
+                            .font(.footnote)
+                            .foregroundStyle(Theme.subtext)
+                    }
+                }
+            }
+            if post.comments.count > 2 {
+                Text("View all \(post.comments.count) comments")
+                    .font(.caption2)
+                    .foregroundStyle(Theme.olive)
+                    .padding(.top, 2)
             }
         }
     }
